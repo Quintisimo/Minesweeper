@@ -1,5 +1,5 @@
 Username	Password
-Maolin 	 	111111
+Maolin 		111111
 Jason 		222222
 Mike 		333333
 Peter 		444444
