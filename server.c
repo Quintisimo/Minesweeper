@@ -10,22 +10,31 @@
 #include <unistd.h>
 
 #define BACKLOG 10
+#define RANDOM_NUMBER_SEED 42
 
-int main(int argc, char const *argv[])
-{
+struct Auth {
+  char username[7][10];
+  int password[];
+};
+
+void authentication(struct Auth database);
+
+int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
   struct sockaddr_in server_address;
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
-  if (argc != 2)
-  {
+  struct Auth Database;
+
+  if (argc != 2) {
     fprintf(stderr, "Please enter a port for the server to run on");
     exit(1);
   }
 
-  if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-  {
+  authentication(Database);
+
+  if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket");
     exit(1);
   }
@@ -34,37 +43,31 @@ int main(int argc, char const *argv[])
   server_address.sin_port = htons(atoi(argv[1]));
   server_address.sin_addr.s_addr = INADDR_ANY;
 
-  if (bind(socket_id, (struct sockaddr *)&server_address, sizeof(struct sockaddr)) == -1)
-  {
+  if (bind(socket_id, (struct sockaddr *)&server_address, sizeof(struct sockaddr)) == -1) {
     perror("bind");
     exit(1);
   }
 
-  if (listen(socket_id, BACKLOG) == -1)
-  {
+  if (listen(socket_id, BACKLOG) == -1) {
     perror("listen");
     exit(1);
   }
 
   printf("Server is listening on %d\n", atoi(argv[1]));
 
-  while (1)
-  {
+  while (1) {
     socket_length = sizeof(struct sockaddr);
 
-    if ((new_connection = accept(socket_id, (struct sockaddr *)&client_address, &socket_length)) == -1)
-    {
+    if ((new_connection = accept(socket_id, (struct sockaddr *)&client_address, &socket_length)) == -1) {
       perror("accept");
       continue;
     }
 
     printf("Server received a connection from %s\n", inet_ntoa(client_address.sin_addr));
 
-    if (!fork())
-    {
+    if (!fork()) {
       char message[10] = "Suh Dude\n";
-      if (send(new_connection, (void *) message, sizeof(message), 0) == -1)
-      {
+      if (send(new_connection, (void *) message, sizeof(message), 0) == -1) {
         perror("send");
       }
       close(new_connection);
@@ -74,4 +77,38 @@ int main(int argc, char const *argv[])
 
     while (waitpid(-1, NULL, WNOHANG) > 0);
   }
+}
+
+void authentication(struct Auth database) {
+  FILE *authentication;
+  int array_index = 0;
+  char user_buffer[1000];
+  char pass_buffer[1000];
+
+  if (!(authentication = fopen("Authentication.txt", "r"))) {
+    fprintf(stderr, "Failed to read Authentication.txt");
+    exit(1);
+  }
+
+  while (fgets(user_buffer, 1000, authentication) != NULL) {
+    char *user = user_buffer;
+    char *username = strtok_r(user, "\t", &user);
+
+    if (username != NULL) {
+      if (strcmp(username, "Username") != 0) {
+        strcpy(database.username[array_index], username);
+        array_index++;
+      }
+    } else {
+      fprintf(stderr, "Error reading usernames from Authentication.txt");
+    }
+  }
+
+  fclose(authentication);
+
+  for (int i = 0; i < array_index; i++) {
+    printf("%s", database.username[i]);
+    printf("\n");
+  }
+
 }
