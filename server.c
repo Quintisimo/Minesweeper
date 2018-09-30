@@ -14,11 +14,12 @@
 #define RANDOM_NUMBER_SEED 42
 
 struct Auth {
-  char username[10][10];
-  char password[10][10];
+  char username[10];
+  char password[10];
 };
 
-void authentication(struct Auth database);
+void authentication(struct Auth database[]);
+void check_login(int new_connection, struct Auth database[]);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -26,7 +27,7 @@ int main(int argc, char const *argv[]) {
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
-  struct Auth Database;
+  struct Auth Database[BACKLOG];
 
   if (argc != 2) {
     fprintf(stderr, "Please enter a port for the server to run on\n");
@@ -67,10 +68,7 @@ int main(int argc, char const *argv[]) {
     printf("Server received a connection from %s\n", inet_ntoa(client_address.sin_addr));
 
     if (!fork()) {
-      char message[10] = "Suh Dude\n";
-      if (send(new_connection, (void *) message, sizeof(message), 0) == -1) {
-        perror("send");
-      }
+      check_login(new_connection, Database);
       close(new_connection);
       exit(0);
     }
@@ -80,7 +78,7 @@ int main(int argc, char const *argv[]) {
   }
 }
 
-void authentication(struct Auth database) {
+void authentication(struct Auth database[]) {
   FILE *authentication;
   int array_index = 0;
   char buffer[1000];
@@ -99,7 +97,7 @@ void authentication(struct Auth database) {
         if (isspace(username[strlen(username) - 1])) {
           username[strlen(username) - 1] = '\0';
         }
-        strcpy(database.username[array_index], username);
+        strcpy(database[array_index].username, username);
       }
     } else {
       fprintf(stderr, "Error reading usernames from Authentication.txt\n");
@@ -111,7 +109,7 @@ void authentication(struct Auth database) {
         if (isspace(password[strlen(password) - 1])) {
           password[strlen(password) - 1] = '\0';
         }
-        strcpy(database.password[array_index], password);
+        strcpy(database[array_index].password, password);
       }
     } else {
       fprintf(stderr, "Error reading password from Authentication.txt\n");
@@ -124,4 +122,45 @@ void authentication(struct Auth database) {
   }
 
   fclose(authentication);
+}
+
+void check_login(int new_connection, struct Auth database[]) {
+  char username[10];
+  char password[10];
+  int has_username = -1;
+  int has_password = -1;
+
+  if (recv(new_connection, &username, 10, 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  for (int i = 0; i < BACKLOG; i++) {
+    if (strcmp(username, database[i].username) == 0) {
+      has_username = 0;
+      break;
+    }
+  }
+
+  if (send(new_connection, &has_username, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
+  if (recv(new_connection, &password, 10, 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  for (int i = 0; i < BACKLOG; i++) {
+    if (strcmp(password, database[i].password) == 0) {
+      has_password = 0;
+      break;
+    }
+  }
+
+  if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
 }
