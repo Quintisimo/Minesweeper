@@ -11,6 +11,7 @@
 #define MAXDATASIZE 100
 
 void login(int socket_id);
+void menu();
 
 int main(int argc, char const *argv[]) {
   int socket_id, bytes_size;
@@ -59,7 +60,7 @@ void login(int socket_id) {
   printf("====================================================\n\n");
   printf("You are required to login with your username and password\n\n");
   printf("Username: ");
-  
+
   fgets(username, 10, stdin);
   username[strcspn(username, "\n")] = '\0';
   if (send(socket_id, &username, 10, 0) == -1) {
@@ -93,5 +94,18 @@ void login(int socket_id) {
   if (has_password == -1) {
     printf("Incorrect password\n");
     exit(1);
+  }
+}
+
+void menu() {
+  int selection;
+  printf("Welcome to the Minesweeper gaming system\n");
+  printf("Please enter a selection:\n");
+  printf("\t<1> Play Minesweeper");
+  printf("\t<2> Show Leaderboard");
+  printf("\t <3> Quit");
+  printf("Please select one of the options (1-3):");
+  if(scanf("%i", &selection) == -1) {
+    fprintf(stderr, "Error reading selection");
   }
 }
