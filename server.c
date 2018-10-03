@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
@@ -12,14 +13,27 @@
 
 #define BACKLOG 10
 #define RANDOM_NUMBER_SEED 42
+#define NUM_TILES_X 9
+#define NUM_TILES_Y 9
+#define NUM_MINES 10
 
-struct Auth {
+typedef struct {
   char username[10];
   char password[10];
-};
+} Auth;
 
-void authentication(struct Auth database[]);
-void check_login(int new_connection, struct Auth database[]);
+typedef struct {
+  int adjacent_mines;
+  bool revealed;
+  bool is_mine;
+} Tile;
+
+typedef struct {
+  Tile tiles[NUM_TILES_X][NUM_TILES_Y];
+} GameState;
+
+void authentication(Auth database[]);
+void check_login(int new_connection, Auth database[]);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -27,7 +41,7 @@ int main(int argc, char const *argv[]) {
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
-  struct Auth Database[BACKLOG];
+  Auth Database[BACKLOG];
 
   if (argc != 2) {
     fprintf(stderr, "Please enter a port for the server to run on\n");
@@ -78,7 +92,7 @@ int main(int argc, char const *argv[]) {
   }
 }
 
-void authentication(struct Auth database[]) {
+void authentication(Auth database[]) {
   FILE *authentication;
   int array_index = 0;
   char buffer[1000];
@@ -124,7 +138,7 @@ void authentication(struct Auth database[]) {
   fclose(authentication);
 }
 
-void check_login(int new_connection, struct Auth database[]) {
+void check_login(int new_connection, Auth database[]) {
   char username[10];
   char password[10];
   int has_username = -1;
