@@ -34,6 +34,7 @@ typedef struct {
 
 void authentication(Auth database[]);
 void check_login(int new_connection, Auth database[]);
+void place_mines(GameState board[]);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -42,6 +43,8 @@ int main(int argc, char const *argv[]) {
   socklen_t socket_length;
 
   Auth Database[BACKLOG];
+  GameState Board[NUM_MINES];
+  srand(RANDOM_NUMBER_SEED);
 
   if (argc != 2) {
     fprintf(stderr, "Please enter a port for the server to run on\n");
@@ -83,6 +86,7 @@ int main(int argc, char const *argv[]) {
 
     if (!fork()) {
       check_login(new_connection, Database);
+      place_mines(Board);
       close(new_connection);
       exit(0);
     }
@@ -176,5 +180,25 @@ void check_login(int new_connection, Auth database[]) {
   if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
+  }
+}
+
+bool tile_contains_mine(Tile tile) {
+  if (tile.is_mine) {
+    return true;
+  }
+  return false;
+}
+
+void place_mines(GameState board[]) {
+  for (int i = 0; i < NUM_MINES; i++) {
+    int x;
+    int y;
+
+    do {
+      x = rand() % NUM_TILES_X;
+      y = rand() % NUM_TILES_Y;
+    } while (tile_contains_mine(board[i].tiles[x][y]));
+    board[i].tiles[x][y].is_mine = true;
   }
 }

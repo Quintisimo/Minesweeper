@@ -11,6 +11,7 @@
 #define MAXDATASIZE 100
 
 void login(int socket_id);
+void play_game();
 void menu();
 
 int main(int argc, char const *argv[]) {
@@ -106,6 +107,26 @@ void menu() {
   printf("\t <3> Quit");
   printf("Please select one of the options (1-3):");
   if(scanf("%i", &selection) == -1) {
+    fprintf(stderr, "Error reading selection");
+  }
+
+  if (selection == 1) {
+    play_game();
+  }
+}
+
+void play_game() {
+  char selection;
+  printf("Remaining mines %i\n\n", mines);
+  printf("1 2 3 4 5 6 7 8 9");
+  printf("-----------------");
+  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+  printf("Choose an option\n");
+  printf("<R> Reveal tile\n");
+  printf("<P> Place flag");
+  printf("<Q> Quit game\n");
+  printf("Options (R,P,Q):");
+  if (scanf("%c", &selection) == -1) {
     fprintf(stderr, "Error reading selection");
   }
 }
