@@ -7,12 +7,17 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define MAXDATASIZE 100
 
-void login(int socket_id);
+int socket_id;
+
+bool login(int socket_id);
 void play_game();
-void menu();
+int menu();
+void menuOption();
+void quit();
 
 int main(int argc, char const *argv[]) {
   int socket_id, bytes_size;
@@ -45,12 +50,15 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  login(socket_id);
+  if (login(socket_id) == true) {
+    menuOption();
+  }
+
   close(socket_id);
 }
 
 
-void login(int socket_id) {
+bool login(int socket_id) {
   char username[10];
   char password[10];
   int has_username;
@@ -94,38 +102,71 @@ void login(int socket_id) {
 
   if (has_password == -1) {
     printf("Incorrect password\n");
+    return false;
     exit(1);
+  } else {
+    return true;
   }
 }
 
-void menu() {
+void quit() {
+  close(socket_id);
+}
+
+void menuOption() {
+  switch(menu()) {
+    case 1:
+        play_game();
+    case 2:
+        printf("leaderBoard\n");
+    case 3:
+        quit();
+  }
+}
+
+int menu() {
   int selection;
+
   printf("Welcome to the Minesweeper gaming system\n");
   printf("Please enter a selection:\n");
-  printf("\t<1> Play Minesweeper");
-  printf("\t<2> Show Leaderboard");
-  printf("\t <3> Quit");
-  printf("Please select one of the options (1-3):");
-  if(scanf("%i", &selection) == -1) {
-    fprintf(stderr, "Error reading selection");
+  printf("\t<1> Play Minesweeper\n");
+  printf("\t<2> Show Leaderboard\n");
+  printf("\t<3> Quit\n\n");
+
+  // printf("Please select one of the options (1-3):");
+
+  // if(scanf("%i", &selection) == -1) {
+  //   fprintf(stderr, "Error reading selection");
+  // }
+
+  // if (scanf("%i", &selection) < 3) {
+  //   play_game();
+  // }
+
+  while (1) {
+    if (selection >= 1 && selection <= 3) {
+      break;
+    } else {
+      printf("Please select one of the options (1-3):\n");
+      scanf("%i", &selection);
+    }
   }
 
-  if (selection == 1) {
-    play_game();
-  }
+  return selection;
 }
 
 void play_game() {
   char selection;
-  printf("Remaining mines %i\n\n", mines);
-  printf("1 2 3 4 5 6 7 8 9");
-  printf("-----------------");
+  int mines = 10;
+  printf("\nRemaining mines %i\n\n", mines);
+  printf("1 2 3 4 5 6 7 8 9\n");
+  printf("-----------------\n");
   printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
   printf("Choose an option\n");
   printf("<R> Reveal tile\n");
-  printf("<P> Place flag");
+  printf("<P> Place flag\n");
   printf("<Q> Quit game\n");
-  printf("Options (R,P,Q):");
+  printf("Options (R,P,Q): ");
   if (scanf("%c", &selection) == -1) {
     fprintf(stderr, "Error reading selection");
   }

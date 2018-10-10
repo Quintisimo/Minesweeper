@@ -16,6 +16,7 @@
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
+#define DEFAULT_PORT 12345 /* default port used by the server */
 
 typedef struct {
   char username[10];
@@ -37,6 +38,7 @@ void check_login(int new_connection, Auth database[]);
 void place_mines(GameState board[]);
 
 int main(int argc, char const *argv[]) {
+  uint16_t portNum = DEFAULT_PORT;
   int socket_id, new_connection;
   struct sockaddr_in server_address;
   struct sockaddr_in client_address;
@@ -46,10 +48,10 @@ int main(int argc, char const *argv[]) {
   GameState Board[NUM_MINES];
   srand(RANDOM_NUMBER_SEED);
 
-  if (argc != 2) {
-    fprintf(stderr, "Please enter a port for the server to run on\n");
-    exit(1);
-  }
+
+if (argc > 1) {
+  portNum = atoi(argv[1]);
+}
 
   authentication(Database);
 
@@ -59,7 +61,7 @@ int main(int argc, char const *argv[]) {
   }
 
   server_address.sin_family = AF_INET;
-  server_address.sin_port = htons(atoi(argv[1]));
+  server_address.sin_port = htons(portNum);
   server_address.sin_addr.s_addr = INADDR_ANY;
 
   if (bind(socket_id, (struct sockaddr *)&server_address, sizeof(struct sockaddr)) == -1) {

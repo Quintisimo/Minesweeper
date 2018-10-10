@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -lpthread
+CFLAGS = -lpthread -Wall -Werror
 
 make:
 	rm -f client server
