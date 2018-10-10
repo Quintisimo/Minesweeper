@@ -16,6 +16,8 @@ int socket_id;
 bool login(int socket_id);
 void play_game();
 int menu();
+int options();
+void optionsOption();
 void menuOption();
 void quit();
 
@@ -156,18 +158,71 @@ int menu() {
 }
 
 void play_game() {
+  bool finished = false;
   char selection;
   int mines = 10;
-  printf("\nRemaining mines %i\n\n", mines);
-  printf("1 2 3 4 5 6 7 8 9\n");
-  printf("-----------------\n");
-  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
-  printf("Choose an option\n");
-  printf("<R> Reveal tile\n");
-  printf("<P> Place flag\n");
-  printf("<Q> Quit game\n");
+
+  while (finished != true) {
+    printf("\nRemaining mines %i\n\n", mines);
+    printf("1 2 3 4 5 6 7 8 9\n");
+    printf("-----------------\n");
+    printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+    printf("Choose an option\n");
+    printf("<R> Reveal tile\n");
+    printf("<P> Place flag\n");
+    printf("<Q> Quit game\n");
+
+    // printf("Options (R,P,Q): ");
+
+    // if (scanf("%c", &selection) == -1) {
+    //   fprintf(stderr, "Error reading selection");
+
+    optionsOption();
+
+  }
+}
+
+int options() {
+  char userSelection;
+  int selection;
+
   printf("Options (R,P,Q): ");
-  if (scanf("%c", &selection) == -1) {
-    fprintf(stderr, "Error reading selection");
+
+  while (1) {
+    printf("Please select one of the options (R, P, Q): ");
+    userSelection = scanf(" %s", &userSelection);    
+    
+
+    /* BOTH METHODS DON'T WORK */
+    
+    // if (userSelection == 'R') {
+    //   selection = 1;
+    // } else if (userSelection == 'P') {
+    //   selection = 2;
+    // } else {
+    //   selection = 3;
+
+    // if (userSelection == 'R') {
+    //   userSelection = 1;
+    // } else if (userSelection == 'P') {
+    //   userSelection = 2;
+    // } else {
+    //   userSelection = 3;
+    // }
+
+      selection = atoi(&userSelection);
+    }
+    return selection;
+  }
+  
+
+void optionsOption() {
+  switch(options()) {
+    case 1:
+        printf("Reveal tile\n");
+    case 2:
+        printf("Place flag\n");
+    case 3:
+        quit();
   }
 }
