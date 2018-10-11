@@ -116,13 +116,12 @@ void quit() {
 }
 
 void menuOption() {
-  switch(menu()) {
-    case 1:
-        play_game();
-    case 2:
-        printf("leaderBoard\n");
-    case 3:
-        quit();
+  if (menu() == 1) {
+    play_game();
+  } else if (menu() == 2) {
+    printf("Leaderboard\n");
+  } else {
+    quit();
   }
 }
 
@@ -134,8 +133,6 @@ int menu() {
   printf("\t<1> Play Minesweeper\n");
   printf("\t<2> Show Leaderboard\n");
   printf("\t<3> Quit\n\n");
-
-  // printf("Please select one of the options (1-3):");
 
   // if(scanf("%i", &selection) == -1) {
   //   fprintf(stderr, "Error reading selection");
@@ -162,67 +159,50 @@ void play_game() {
   char selection;
   int mines = 10;
 
-  while (finished != true) {
-    printf("\nRemaining mines %i\n\n", mines);
-    printf("1 2 3 4 5 6 7 8 9\n");
-    printf("-----------------\n");
-    printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
-    printf("Choose an option\n");
-    printf("<R> Reveal tile\n");
-    printf("<P> Place flag\n");
-    printf("<Q> Quit game\n");
 
-    // printf("Options (R,P,Q): ");
+  printf("\nRemaining mines %i\n\n", mines);
+  printf("1 2 3 4 5 6 7 8 9\n");
+  printf("-----------------\n");
+  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+  printf("Choose an option\n");
+  printf("<R> Reveal tile\n");
+  printf("<P> Place flag\n");
+  printf("<Q> Quit game\n");
 
-    // if (scanf("%c", &selection) == -1) {
-    //   fprintf(stderr, "Error reading selection");
+  // if (scanf("%c", &selection) == -1) {
+  //   fprintf(stderr, "Error reading selection");
 
-    optionsOption();
+  optionsOption();
 
-  }
 }
 
 int options() {
   char userSelection;
   int selection;
 
-  printf("Options (R,P,Q): ");
+  printf("\nOptions (R,P,Q): \n");
 
   while (1) {
     printf("Please select one of the options (R, P, Q): ");
-    userSelection = scanf(" %s", &userSelection);    
-    
+    scanf("%s", &userSelection);
 
-    /* BOTH METHODS DON'T WORK */
-    
-    // if (userSelection == 'R') {
-    //   selection = 1;
-    // } else if (userSelection == 'P') {
-    //   selection = 2;
-    // } else {
-    //   selection = 3;
-
-    // if (userSelection == 'R') {
-    //   userSelection = 1;
-    // } else if (userSelection == 'P') {
-    //   userSelection = 2;
-    // } else {
-    //   userSelection = 3;
-    // }
-
-      selection = atoi(&userSelection);
+    if (userSelection == 'R') {
+      return 1;
+    } else if (userSelection == 'P') {
+      return 2;
+    } else {
+      return 3;
     }
-    return selection;
   }
+}
   
 
 void optionsOption() {
-  switch(options()) {
-    case 1:
-        printf("Reveal tile\n");
-    case 2:
-        printf("Place flag\n");
-    case 3:
-        quit();
+  if (options() == 1) {
+    printf("Reveal tile\n");
+  } else if (options() == 2) {
+    printf("Place flag\n");
+  } else {
+    quit();
   }
 }
