@@ -28,7 +28,7 @@ int main(int argc, char const *argv[]) {
   struct sockaddr_in server_address;
 
   if (argc != 3) {
-    fprintf(stderr, "Please enter the server ip address and port");
+    fprintf(stderr, "Please enter the server ip address and port\n");
     exit(1);
   }
 
@@ -116,9 +116,11 @@ void quit() {
 }
 
 void menuOption() {
-  if (menu() == 1) {
+  int selection = menu();
+
+  if (selection == 1) {
     play_game();
-  } else if (menu() == 2) {
+  } else if (selection == 2) {
     printf("Leaderboard\n");
   } else {
     quit();
@@ -126,7 +128,7 @@ void menuOption() {
 }
 
 int menu() {
-  int selection;
+  int selection = 0;
 
   printf("Welcome to the Minesweeper gaming system\n");
   printf("Please enter a selection:\n");
@@ -142,11 +144,11 @@ int menu() {
   //   play_game();
   // }
 
-  while (1) {
+  while(1) {
     if (selection >= 1 && selection <= 3) {
       break;
     } else {
-      printf("Please select one of the options (1-3):\n");
+      printf("Please select one of the options (1-3):");
       scanf("%i", &selection);
     }
   }
@@ -178,7 +180,7 @@ void play_game() {
 
 int options() {
   char userSelection;
-  int selection;
+  int selection = 0;
 
   printf("\nOptions (R,P,Q): \n");
 
@@ -198,9 +200,10 @@ int options() {
   
 
 void optionsOption() {
-  if (options() == 1) {
+  int selection = options();
+  if (selection == 1) {
     printf("Reveal tile\n");
-  } else if (options() == 2) {
+  } else if (selection == 2) {
     printf("Place flag\n");
   } else {
     quit();
