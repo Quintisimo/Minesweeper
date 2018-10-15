@@ -14,16 +14,17 @@
 int socket_id;
 
 bool login(int socket_id);
-void play_game();
+void play_game(int socket_id);
 int menu();
 int options();
 void optionsOption();
-void menuOption();
+void menuOption(int socket_id);
 void quit();
 
 int main(int argc, char const *argv[]) {
-  int socket_id, bytes_size;
-  char buffer[MAXDATASIZE];
+  int socket_id;
+  // int bytes_size;
+  // char buffer[MAXDATASIZE];
   struct hostent *server;
   struct sockaddr_in server_address;
 
@@ -53,7 +54,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (login(socket_id) == true) {
-    menuOption();
+    menuOption(socket_id);
   }
 
   close(socket_id);
@@ -115,11 +116,11 @@ void quit() {
   close(socket_id);
 }
 
-void menuOption() {
+void menuOption(int socket_id) {
   int selection = menu();
 
   if (selection == 1) {
-    play_game();
+    play_game(socket_id);
   } else if (selection == 2) {
     printf("Leaderboard\n");
   } else {
@@ -156,11 +157,15 @@ int menu() {
   return selection;
 }
 
-void play_game() {
-  bool finished = false;
-  char selection;
-  int mines = 10;
+void play_game(int socket_id) {
+  // bool finished = false;
+  // char selection;
+  int mines = 0;
 
+  if (recv(socket_id, &mines, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
 
   printf("\nRemaining mines %i\n\n", mines);
   printf("1 2 3 4 5 6 7 8 9\n");
@@ -180,7 +185,7 @@ void play_game() {
 
 int options() {
   char userSelection;
-  int selection = 0;
+  // int selection = 0;
 
   printf("\nOptions (R,P,Q): \n");
 

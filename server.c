@@ -89,6 +89,12 @@ if (argc > 1) {
     if (!fork()) {
       check_login(new_connection, Database);
       place_mines(Board);
+      
+      int mines = NUM_MINES;
+      if (send(new_connection, &mines, sizeof(int), 0) == -1) {
+        perror("send");
+        exit(1);
+      }
       close(new_connection);
       exit(0);
     }
@@ -185,13 +191,6 @@ void check_login(int new_connection, Auth database[]) {
   }
 }
 
-bool tile_contains_mine(Tile tile) {
-  if (tile.is_mine) {
-    return true;
-  }
-  return false;
-}
-
 void place_mines(GameState board[]) {
   for (int i = 0; i < NUM_MINES; i++) {
     int x;
@@ -200,7 +199,7 @@ void place_mines(GameState board[]) {
     do {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
-    } while (tile_contains_mine(board[i].tiles[x][y]));
+    } while (board[i].tiles[x][y].is_mine);
     board[i].tiles[x][y].is_mine = true;
   }
 }
