@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#define MAXDATASIZE 100
 #define BACKLOG 10
 #define RANDOM_NUMBER_SEED 42
 #define NUM_TILES_X 9
@@ -33,12 +34,22 @@ typedef struct {
   Tile tiles[NUM_TILES_X][NUM_TILES_Y];
 } GameState;
 
+typedef struct request request_t;
+struct request {
+  int number;
+  int sockfd;
+  request_t* next;
+};
+
+struct request *requests = NULL;
+struct request *last_request = NULL;
+
 void authentication(Auth database[]);
 void check_login(int new_connection, Auth database[]);
-void place_mines(GameState board[]);
+void place_mines();
 
 int main(int argc, char const *argv[]) {
-  uint16_t portNum = DEFAULT_PORT;
+  // uint16_t portNum = DEFAULT_PORT;
   int socket_id, new_connection;
   struct sockaddr_in server_address;
   struct sockaddr_in client_address;
@@ -48,10 +59,23 @@ int main(int argc, char const *argv[]) {
   GameState Board[NUM_MINES];
   srand(RANDOM_NUMBER_SEED);
 
+  if (argc != 2) {
+    fprintf(stderr, "Port number has been set to default: 12345\n");
 
-if (argc > 1) {
-  portNum = atoi(argv[1]);
-}
+      server_address.sin_family = AF_INET;
+      server_address.sin_port = htons(DEFAULT_PORT);
+      server_address.sin_addr.s_addr = INADDR_ANY;
+  } else {
+      server_address.sin_family = AF_INET;
+      server_address.sin_port = htons(atoi(argv[1]));
+      server_address.sin_addr.s_addr = INADDR_ANY;    
+  }
+
+  // if (argc > 1) {
+  //   portNum = atoi(argv[1]);
+  // } else {
+  //   portNum = DEFAULT_PORT;
+  // }
 
   authentication(Database);
 
@@ -59,10 +83,6 @@ if (argc > 1) {
     perror("socket");
     exit(1);
   }
-
-  server_address.sin_family = AF_INET;
-  server_address.sin_port = htons(portNum);
-  server_address.sin_addr.s_addr = INADDR_ANY;
 
   if (bind(socket_id, (struct sockaddr *)&server_address, sizeof(struct sockaddr)) == -1) {
     perror("bind");
@@ -89,7 +109,6 @@ if (argc > 1) {
     if (!fork()) {
       check_login(new_connection, Database);
       place_mines(Board);
-      
       int mines = NUM_MINES;
       if (send(new_connection, &mines, sizeof(int), 0) == -1) {
         perror("send");
@@ -191,7 +210,22 @@ void check_login(int new_connection, Auth database[]) {
   }
 }
 
-void place_mines(GameState board[]) {
+bool tile_contains_mine(int x, int y) {
+  bool contains_mine;
+
+  for (int i = 0; i < NUM_TILES_X; i++) {
+    for (int j = 0; j < NUM_TILES_Y; j++) {
+      if ((x == i) && (y == j)) { 
+        contains_mine = true;
+      } else {
+        contains_mine = false;
+      }
+    }
+  }
+  return contains_mine;
+}
+
+void place_mines() {
   for (int i = 0; i < NUM_MINES; i++) {
     int x;
     int y;
@@ -199,7 +233,28 @@ void place_mines(GameState board[]) {
     do {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
-    } while (board[i].tiles[x][y].is_mine);
-    board[i].tiles[x][y].is_mine = true;
-  }
+    } while (tile_contains_mine(x,y));
+      // place mine at (x, y) 
+      for (int i = 0; i < NUM_TILES_X; i++) {
+        for (int j = 0; j < NUM_TILES_Y; j++) {
+          if (tile_contains_mine(x,y)) {
+            printf("*");
+          }
+        }
+      }
+    }
 }
+
+
+void minesweeperLoop(int new_connection) {
+  char buf[MAXDATASIZE];
+
+  place_mines();
+
+    // Send the placed mines to the client
+    if (send(new_connection, buf, sizeof(buf), 0) == -1) {
+      close(new_connection);
+      perror("send");
+    }
+
+  }

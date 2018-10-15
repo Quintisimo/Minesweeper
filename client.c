@@ -162,15 +162,17 @@ void play_game(int socket_id) {
   // char selection;
   int mines = 0;
 
+  // receive number of mines
   if (recv(socket_id, &mines, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
-
+  
   printf("\nRemaining mines %i\n\n", mines);
-  printf("1 2 3 4 5 6 7 8 9\n");
-  printf("-----------------\n");
-  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+  printf("    1 2 3 4 5 6 7 8 9\n");
+  printf("----------------------\n");
+  printf("A |");
+  printf("\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
   printf("Choose an option\n");
   printf("<R> Reveal tile\n");
   printf("<P> Place flag\n");
