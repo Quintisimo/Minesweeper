@@ -17,7 +17,6 @@
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
-#define DEFAULT_PORT 12345 /* default port used by the server */
 
 typedef struct {
   char username[10];
@@ -46,36 +45,26 @@ struct request *last_request = NULL;
 
 void authentication(Auth database[]);
 void check_login(int new_connection, Auth database[]);
-void place_mines();
+void place_mines(GameState board);
+void adjacent_mines(GameState board);
 
 int main(int argc, char const *argv[]) {
-  // uint16_t portNum = DEFAULT_PORT;
   int socket_id, new_connection;
   struct sockaddr_in server_address;
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
   Auth Database[BACKLOG];
-  GameState Board[NUM_MINES];
+  GameState Board = {};
   srand(RANDOM_NUMBER_SEED);
 
   if (argc != 2) {
-    fprintf(stderr, "Port number has been set to default: 12345\n");
-
-      server_address.sin_family = AF_INET;
-      server_address.sin_port = htons(DEFAULT_PORT);
-      server_address.sin_addr.s_addr = INADDR_ANY;
-  } else {
-      server_address.sin_family = AF_INET;
-      server_address.sin_port = htons(atoi(argv[1]));
-      server_address.sin_addr.s_addr = INADDR_ANY;    
+    fprintf(stderr, "Please enter a port number\n");
+    exit(1);
   }
-
-  // if (argc > 1) {
-  //   portNum = atoi(argv[1]);
-  // } else {
-  //   portNum = DEFAULT_PORT;
-  // }
+  server_address.sin_family = AF_INET;
+  server_address.sin_port = htons(atoi(argv[1]));
+  server_address.sin_addr.s_addr = INADDR_ANY;
 
   authentication(Database);
 
@@ -109,6 +98,7 @@ int main(int argc, char const *argv[]) {
     if (!fork()) {
       check_login(new_connection, Database);
       place_mines(Board);
+      adjacent_mines(Board);
       int mines = NUM_MINES;
       if (send(new_connection, &mines, sizeof(int), 0) == -1) {
         perror("send");
@@ -225,7 +215,7 @@ bool tile_contains_mine(int x, int y) {
   return contains_mine;
 }
 
-void place_mines() {
+void place_mines(GameState board) {
   for (int i = 0; i < NUM_MINES; i++) {
     int x;
     int y;
@@ -233,28 +223,59 @@ void place_mines() {
     do {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
-    } while (tile_contains_mine(x,y));
-      // place mine at (x, y) 
-      for (int i = 0; i < NUM_TILES_X; i++) {
-        for (int j = 0; j < NUM_TILES_Y; j++) {
-          if (tile_contains_mine(x,y)) {
-            printf("*");
-          }
-        }
-      }
-    }
+    // } while (tile_contains_mine(x,y));
+    } while(board.tiles[x][y].is_mine);
+      // place mine at (x, y)
+    board.tiles[x][y].is_mine = true;
+    // for (int i = 0; i < NUM_TILES_X; i++) {
+    //   for (int j = 0; j < NUM_TILES_Y; j++) {
+    //     if (tile_contains_mine(x,y)) {
+    //       printf("*");
+    //     }
+    //   }
+    // }
+  }
 }
 
+void adjacent_mines(GameState board) {
+  for (int i = 0; i < NUM_TILES_X; i++) {
+    for (int j = 0; j < NUM_TILES_Y; j++) {
+      if (board.tiles[i + 1][j].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+      
+      if (board.tiles[i][j + 1].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+      
+      if (board.tiles[i + 1][j + 1].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+
+      if (board.tiles[i - 1][j].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+
+      if (board.tiles[i][j - 1].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+
+      if (board.tiles[i - 1][j - 1].is_mine) {
+        board.tiles[i][j].adjacent_mines += 1;
+      }
+      printf("x: %d y: %d, mines: %d\n", i, j, board.tiles[i][j].adjacent_mines);
+    }
+  }
+}
 
 void minesweeperLoop(int new_connection) {
   char buf[MAXDATASIZE];
 
-  place_mines();
+  // place_mines();
 
-    // Send the placed mines to the client
-    if (send(new_connection, buf, sizeof(buf), 0) == -1) {
-      close(new_connection);
-      perror("send");
-    }
-
+  // Send the placed mines to the client
+  if (send(new_connection, buf, sizeof(buf), 0) == -1) {
+    close(new_connection);
+    perror("send");
   }
+}

@@ -149,7 +149,7 @@ int menu() {
     if (selection >= 1 && selection <= 3) {
       break;
     } else {
-      printf("Please select one of the options (1-3):");
+      printf("Please select one of the options (1-3): ");
       scanf("%i", &selection);
     }
   }
@@ -169,10 +169,9 @@ void play_game(int socket_id) {
   }
   
   printf("\nRemaining mines %i\n\n", mines);
-  printf("    1 2 3 4 5 6 7 8 9\n");
-  printf("----------------------\n");
-  printf("A |");
-  printf("\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+  printf("   1 2 3 4 5 6 7 8 9\n");
+  printf("---------------------\n");
+  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
   printf("Choose an option\n");
   printf("<R> Reveal tile\n");
   printf("<P> Place flag\n");
@@ -189,10 +188,9 @@ int options() {
   char userSelection;
   // int selection = 0;
 
-  printf("\nOptions (R,P,Q): \n");
 
   while (1) {
-    printf("Please select one of the options (R, P, Q): ");
+    printf("\nOptions (R,P,Q): ");
     scanf("%s", &userSelection);
 
     if (userSelection == 'R') {
