@@ -15,11 +15,12 @@ int socket_id;
 
 bool login(int socket_id);
 void play_game(int socket_id);
-int menu();
-int options();
-void optionsOption();
-void menuOption(int socket_id);
+int game_options();
+int user_options();
+void game_function(int socket_id);
+void menu_option(int socket_id);
 void quit();
+int letter_to_number(char letter);
 
 int main(int argc, char const *argv[]) {
   int socket_id;
@@ -54,7 +55,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (login(socket_id) == true) {
-    menuOption(socket_id);
+    menu_option(socket_id);
   }
 
   close(socket_id);
@@ -116,8 +117,8 @@ void quit() {
   close(socket_id);
 }
 
-void menuOption(int socket_id) {
-  int selection = menu();
+void menu_option(int socket_id) {
+  int selection = game_options();
 
   if (selection == 1) {
     play_game(socket_id);
@@ -128,7 +129,7 @@ void menuOption(int socket_id) {
   }
 }
 
-int menu() {
+int game_options() {
   int selection = 0;
 
   printf("Welcome to the Minesweeper gaming system\n");
@@ -149,7 +150,7 @@ int menu() {
     if (selection >= 1 && selection <= 3) {
       break;
     } else {
-      printf("Please select one of the options (1-3): ");
+      printf("Please select one of the user_options (1-3): ");
       scanf("%i", &selection);
     }
   }
@@ -179,38 +180,73 @@ void play_game(int socket_id) {
 
   // if (scanf("%c", &selection) == -1) {
   //   fprintf(stderr, "Error reading selection");
-
-  optionsOption();
+  game_function(socket_id);
 
 }
 
-int options() {
+int user_options() {
   char userSelection;
-  // int selection = 0;
+  printf("\nOptions (R,P,Q): ");
+  scanf("%s", &userSelection);
 
-
-  while (1) {
-    printf("\nOptions (R,P,Q): ");
-    scanf("%s", &userSelection);
-
-    if (userSelection == 'R') {
-      return 1;
-    } else if (userSelection == 'P') {
-      return 2;
-    } else {
-      return 3;
-    }
+  if (userSelection == 'R') {
+    return 1;
+  } else if (userSelection == 'P') {
+    return 2;
+  } else {
+    return 3;
   }
 }
-  
 
-void optionsOption() {
-  int selection = options();
+void game_function(int socket_id) {
+  char tile_location[2];
+
+  int selection = user_options();
   if (selection == 1) {
-    printf("Reveal tile\n");
+    printf("Reveal tile: ");
+    scanf("%s", tile_location);
+    int x = atoi(&tile_location[1]) - 1;
+    int y = letter_to_number(tile_location[0]);
+
+    printf("%d\n", socket_id); //! socket id is changing to 0
+    if (send(socket_id, &x, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+
+    if (send(socket_id, &y, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+    
   } else if (selection == 2) {
-    printf("Place flag\n");
+    printf("Place flag: \n");
+    scanf("%s", tile_location);
   } else {
     quit();
   }
+}
+
+int letter_to_number(char letter) {
+  switch (letter) {
+    case 'A':
+      return 0;
+    case 'B':
+      return 1;
+    case 'C':
+      return 2;
+    case 'D':
+      return 3;
+    case 'E':
+      return 4;
+    case 'F':
+      return 5;
+    case 'G':
+      return 6;
+    case 'H':
+      return 7;
+    case 'I':
+      return 8;
+  }
+  return -1;
 }

@@ -47,6 +47,7 @@ void authentication(Auth database[]);
 void check_login(int new_connection, Auth database[]);
 void place_mines(GameState board);
 void adjacent_mines(GameState board);
+void send_tiles(int socket_id, GameState board);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -104,6 +105,7 @@ int main(int argc, char const *argv[]) {
         perror("send");
         exit(1);
       }
+      send_tiles(socket_id, Board);
       close(new_connection);
       exit(0);
     }
@@ -263,19 +265,38 @@ void adjacent_mines(GameState board) {
       if (board.tiles[i - 1][j - 1].is_mine) {
         board.tiles[i][j].adjacent_mines += 1;
       }
-      printf("x: %d y: %d, mines: %d\n", i, j, board.tiles[i][j].adjacent_mines);
     }
   }
 }
 
-void minesweeperLoop(int new_connection) {
-  char buf[MAXDATASIZE];
+// void minesweeperLoop(int new_connection) {
+//   char buf[MAXDATASIZE];
 
-  // place_mines();
+//   // place_mines();
 
-  // Send the placed mines to the client
-  if (send(new_connection, buf, sizeof(buf), 0) == -1) {
-    close(new_connection);
+//   // Send the placed mines to the client
+//   if (send(new_connection, buf, sizeof(buf), 0) == -1) {
+//     close(new_connection);
+//     perror("send");
+//   }
+// }
+
+void send_tiles(int socket_id, GameState board) {
+  int x = 0;
+  int y = 0;
+
+  if (recv(socket_id, &x, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  if (recv(socket_id, &y, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+  
+  if (send(socket_id, &board.tiles[x][y], sizeof(int), 0) == -1) {
     perror("send");
+    exit(1);
   }
 }
