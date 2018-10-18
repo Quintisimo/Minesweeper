@@ -298,7 +298,6 @@ void send_tiles(int new_connection, GameState board) {
     perror("recv");
     exit(1);
   }
-  printf("x: %d, y: %d\n", x, y);
   
   if (board.tiles[x][y].is_mine) {
     tile_value = -1;

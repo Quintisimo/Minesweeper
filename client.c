@@ -215,6 +215,11 @@ void send_location(int socket_id, char tile_location[2]) {
   int y = letter_to_number(tile_location[0]);
   int tile_value = 0;
 
+  if (x > 8 || y == -1) {
+    fprintf(stderr, "Outside grid");
+    exit(1);
+  }
+
   printf("%c: %d\n", tile_location[0], y);
   if (send(socket_id, &x, sizeof(int), 0) == -1) {
     perror("send");
@@ -230,4 +235,5 @@ void send_location(int socket_id, char tile_location[2]) {
     perror("recv");
     exit(1);
   }
+  printf("tile value: %d\n", tile_value);
 }
