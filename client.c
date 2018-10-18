@@ -11,16 +11,13 @@
 
 #define MAXDATASIZE 100
 
-int socket_id;
-
 bool login(int socket_id);
 void play_game(int socket_id);
 int game_options();
-int user_options();
-void game_function(int socket_id);
 void menu_option(int socket_id);
-void quit();
+void quit(int socket_id);
 int letter_to_number(char letter);
+void send_location(int socket_id, char tile_location[2]);
 
 int main(int argc, char const *argv[]) {
   int socket_id;
@@ -54,7 +51,7 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  if (login(socket_id) == true) {
+  if (login(socket_id)) {
     menu_option(socket_id);
   }
 
@@ -113,7 +110,7 @@ bool login(int socket_id) {
   }
 }
 
-void quit() {
+void quit(int socket_id) {
   close(socket_id);
 }
 
@@ -125,7 +122,7 @@ void menu_option(int socket_id) {
   } else if (selection == 2) {
     printf("Leaderboard\n");
   } else {
-    quit();
+    quit(socket_id);
   }
 }
 
@@ -137,14 +134,6 @@ int game_options() {
   printf("\t<1> Play Minesweeper\n");
   printf("\t<2> Show Leaderboard\n");
   printf("\t<3> Quit\n\n");
-
-  // if(scanf("%i", &selection) == -1) {
-  //   fprintf(stderr, "Error reading selection");
-  // }
-
-  // if (scanf("%i", &selection) < 3) {
-  //   play_game();
-  // }
 
   while(1) {
     if (selection >= 1 && selection <= 3) {
@@ -160,8 +149,9 @@ int game_options() {
 
 void play_game(int socket_id) {
   // bool finished = false;
-  // char selection;
   int mines = 0;
+  char user_selection;
+  char tile_location[2];
 
   // receive number of mines
   if (recv(socket_id, &mines, sizeof(int), 0) == -1) {
@@ -177,53 +167,22 @@ void play_game(int socket_id) {
   printf("<R> Reveal tile\n");
   printf("<P> Place flag\n");
   printf("<Q> Quit game\n");
-
-  // if (scanf("%c", &selection) == -1) {
-  //   fprintf(stderr, "Error reading selection");
-  game_function(socket_id);
-
-}
-
-int user_options() {
-  char userSelection;
   printf("\nOptions (R,P,Q): ");
-  scanf("%s", &userSelection);
 
-  if (userSelection == 'R') {
-    return 1;
-  } else if (userSelection == 'P') {
-    return 2;
-  } else {
-    return 3;
-  }
-}
+  scanf("%s", &user_selection);
 
-void game_function(int socket_id) {
-  char tile_location[2];
-
-  int selection = user_options();
-  if (selection == 1) {
+  if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    int x = atoi(&tile_location[1]) - 1;
-    int y = letter_to_number(tile_location[0]);
+    send_location(socket_id, tile_location);
 
-    printf("%d\n", socket_id); //! socket id is changing to 0
-    if (send(socket_id, &x, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
-
-    if (send(socket_id, &y, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
-    
-  } else if (selection == 2) {
+  } else if (user_selection == 'P') {
     printf("Place flag: \n");
     scanf("%s", tile_location);
+    send_location(socket_id, tile_location);
+
   } else {
-    quit();
+    quit(socket_id);
   }
 }
 
@@ -249,4 +208,26 @@ int letter_to_number(char letter) {
       return 8;
   }
   return -1;
+}
+
+void send_location(int socket_id, char tile_location[2]) {
+  int x = atoi(&tile_location[1]) - 1;
+  int y = letter_to_number(tile_location[0]);
+  int tile_value = 0;
+
+  printf("%c: %d\n", tile_location[0], y);
+  if (send(socket_id, &x, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
+  if (send(socket_id, &y, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
+  if (recv(socket_id, &tile_value, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
 }

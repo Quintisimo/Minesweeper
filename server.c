@@ -23,12 +23,14 @@ typedef struct {
   char password[10];
 } Auth;
 
+// tile state
 typedef struct {
   int adjacent_mines;
   bool revealed;
   bool is_mine;
 } Tile;
 
+// grid
 typedef struct {
   Tile tiles[NUM_TILES_X][NUM_TILES_Y];
 } GameState;
@@ -105,7 +107,7 @@ int main(int argc, char const *argv[]) {
         perror("send");
         exit(1);
       }
-      send_tiles(socket_id, Board);
+      send_tiles(new_connection, Board);
       close(new_connection);
       exit(0);
     }
@@ -202,19 +204,20 @@ void check_login(int new_connection, Auth database[]) {
   }
 }
 
-bool tile_contains_mine(int x, int y) {
-  bool contains_mine;
+bool tile_contains_mine(int x, int y, GameState board) {
+  // bool contains_mine;
 
-  for (int i = 0; i < NUM_TILES_X; i++) {
-    for (int j = 0; j < NUM_TILES_Y; j++) {
-      if ((x == i) && (y == j)) { 
-        contains_mine = true;
-      } else {
-        contains_mine = false;
-      }
-    }
-  }
-  return contains_mine;
+  // for (int i = 0; i < NUM_TILES_X; i++) {
+  //   for (int j = 0; j < NUM_TILES_Y; j++) {
+  //     if ((x == i) && (y == j)) { 
+  //       contains_mine = true;
+  //     } else {
+  //       contains_mine = false;
+  //     }
+  //   }
+  // }
+  // return contains_mine;
+  return board.tiles[x][y].is_mine;
 }
 
 void place_mines(GameState board) {
@@ -227,7 +230,7 @@ void place_mines(GameState board) {
       y = rand() % NUM_TILES_Y;
     // } while (tile_contains_mine(x,y));
     } while(board.tiles[x][y].is_mine);
-      // place mine at (x, y)
+    // place mine at (x, y)
     board.tiles[x][y].is_mine = true;
     // for (int i = 0; i < NUM_TILES_X; i++) {
     //   for (int j = 0; j < NUM_TILES_Y; j++) {
@@ -281,21 +284,29 @@ void adjacent_mines(GameState board) {
 //   }
 // }
 
-void send_tiles(int socket_id, GameState board) {
+void send_tiles(int new_connection, GameState board) {
   int x = 0;
   int y = 0;
+  int tile_value = 0;
 
-  if (recv(socket_id, &x, sizeof(int), 0) == -1) {
+  if (recv(new_connection, &x, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
 
-  if (recv(socket_id, &y, sizeof(int), 0) == -1) {
+  if (recv(new_connection, &y, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
+  printf("x: %d, y: %d\n", x, y);
   
-  if (send(socket_id, &board.tiles[x][y], sizeof(int), 0) == -1) {
+  if (board.tiles[x][y].is_mine) {
+    tile_value = -1;
+  } else {
+    tile_value = board.tiles[x][y].adjacent_mines;
+  }
+
+  if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
   }
