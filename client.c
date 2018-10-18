@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #define MAXDATASIZE 100
+char USERNAME[10];
 
 bool login(int socket_id);
 void play_game(int socket_id);
@@ -18,6 +19,7 @@ void menu_option(int socket_id);
 void quit(int socket_id);
 int letter_to_number(char letter);
 void send_location(int socket_id, char tile_location[2]);
+void leader_board(int socket_id);
 
 int main(int argc, char const *argv[]) {
   int socket_id;
@@ -52,6 +54,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (login(socket_id)) {
+    printf("Welcome to the Minesweeper gaming system\n");
     menu_option(socket_id);
   }
 
@@ -85,9 +88,9 @@ bool login(int socket_id) {
 
   if (has_username == -1) {
     printf("Incorrect username\n");
-    exit(1);
+    printf("Username: ");
   }
-  
+
   printf("Password: ");
   fgets(password, 10, stdin);
   password[strcspn(password, "\n")] = '\0';
@@ -104,8 +107,8 @@ bool login(int socket_id) {
   if (has_password == -1) {
     printf("Incorrect password\n");
     return false;
-    exit(1);
   } else {
+    strcpy(USERNAME, username);
     return true;
   }
 }
@@ -120,7 +123,7 @@ void menu_option(int socket_id) {
   if (selection == 1) {
     play_game(socket_id);
   } else if (selection == 2) {
-    printf("Leaderboard\n");
+    leader_board(socket_id);
   } else {
     quit(socket_id);
   }
@@ -129,7 +132,6 @@ void menu_option(int socket_id) {
 int game_options() {
   int selection = 0;
 
-  printf("Welcome to the Minesweeper gaming system\n");
   printf("Please enter a selection:\n");
   printf("\t<1> Play Minesweeper\n");
   printf("\t<2> Show Leaderboard\n");
@@ -139,7 +141,7 @@ int game_options() {
     if (selection >= 1 && selection <= 3) {
       break;
     } else {
-      printf("Please select one of the user_options (1-3): ");
+      printf("Please select one of the options (1-3): ");
       scanf("%i", &selection);
     }
   }
@@ -220,7 +222,7 @@ void send_location(int socket_id, char tile_location[2]) {
     exit(1);
   }
 
-  printf("%c: %d\n", tile_location[0], y);
+  printf("x: %d, y: %d\n", x, y);
   if (send(socket_id, &x, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
@@ -236,4 +238,25 @@ void send_location(int socket_id, char tile_location[2]) {
     exit(1);
   }
   printf("tile value: %d\n", tile_value);
+}
+
+void leader_board(int socket_id) {
+  int time_taken = 0;
+  int games_won = 0;
+  int games_played = 0;
+  
+  printf("\n===========================================================");
+  printf("\n|      Name      ");
+  printf("|  Time (sec)  ");
+  printf("|  Wins  ");
+  printf("|  Games Played  |\n");
+  printf("===========================================================\n");
+
+  printf("\n|     %s     ", USERNAME);
+  printf("|    %d    ", time_taken);
+  printf("|   %d   ", games_won);
+  printf("|   %d   |\n", games_played);
+  printf("===========================================================\n\n");
+
+  menu_option(socket_id);
 }

@@ -107,6 +107,7 @@ int main(int argc, char const *argv[]) {
         perror("send");
         exit(1);
       }
+      printf("%d", Board.tiles[6][1].is_mine); //! mines are not being placed
       send_tiles(new_connection, Board);
       close(new_connection);
       exit(0);
@@ -232,6 +233,7 @@ void place_mines(GameState board) {
     } while(board.tiles[x][y].is_mine);
     // place mine at (x, y)
     board.tiles[x][y].is_mine = true;
+    printf("x: %d, y: %d, v: %d\n", x, y, board.tiles[x][y].is_mine);
     // for (int i = 0; i < NUM_TILES_X; i++) {
     //   for (int j = 0; j < NUM_TILES_Y; j++) {
     //     if (tile_contains_mine(x,y)) {
@@ -299,11 +301,14 @@ void send_tiles(int new_connection, GameState board) {
     exit(1);
   }
   
+  // printf("x:%d, y:%d\n", x, y);
+  // printf("%d", board.tiles[x][y].is_mine);
   if (board.tiles[x][y].is_mine) {
     tile_value = -1;
   } else {
     tile_value = board.tiles[x][y].adjacent_mines;
   }
+  printf("tile value: %d\n", tile_value);
 
   if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
     perror("send");
