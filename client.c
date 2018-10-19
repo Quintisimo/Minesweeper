@@ -18,7 +18,7 @@ int game_options();
 void menu_option(int socket_id);
 void quit(int socket_id);
 int letter_to_number(char letter);
-void send_location(int socket_id, char tile_location[2]);
+int send_location(int socket_id, char tile_location[2]);
 void leader_board(int socket_id);
 
 int main(int argc, char const *argv[]) {
@@ -150,6 +150,7 @@ void play_game(int socket_id) {
   int mines = 0;
   char user_selection;
   char tile_location[2];
+  int tile_value = 0;
 
   // receive number of mines
   if (recv(socket_id, &mines, sizeof(int), 0) == -1) {
@@ -172,12 +173,17 @@ void play_game(int socket_id) {
   if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    send_location(socket_id, tile_location);
+    tile_value = send_location(socket_id, tile_location);
+
+    if (tile_value == -1) {
+      printf("Game Over\n");
+      quit(socket_id);
+    }
 
   } else if (user_selection == 'P') {
     printf("Place flag: \n");
     scanf("%s", tile_location);
-    send_location(socket_id, tile_location);
+    tile_value = send_location(socket_id, tile_location);
 
   } else {
     quit(socket_id);
@@ -185,30 +191,15 @@ void play_game(int socket_id) {
 }
 
 int letter_to_number(char letter) {
-  switch (letter) {
-    case 'A':
-      return 0;
-    case 'B':
-      return 1;
-    case 'C':
-      return 2;
-    case 'D':
-      return 3;
-    case 'E':
-      return 4;
-    case 'F':
-      return 5;
-    case 'G':
-      return 6;
-    case 'H':
-      return 7;
-    case 'I':
-      return 8;
+  int y_location = letter - 'A';
+
+  if (y_location < 9) {
+    return y_location;
   }
   return -1;
 }
 
-void send_location(int socket_id, char tile_location[2]) {
+int send_location(int socket_id, char tile_location[2]) {
   int x = atoi(&tile_location[1]) - 1;
   int y = letter_to_number(tile_location[0]);
   int tile_value = 0;
@@ -218,7 +209,6 @@ void send_location(int socket_id, char tile_location[2]) {
     exit(1);
   }
 
-  printf("x: %d, y: %d\n", x, y);
   if (send(socket_id, &x, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
@@ -233,7 +223,7 @@ void send_location(int socket_id, char tile_location[2]) {
     perror("recv");
     exit(1);
   }
-  printf("tile value: %d\n", tile_value);
+  return tile_value;
 }
 
 void leader_board(int socket_id) {

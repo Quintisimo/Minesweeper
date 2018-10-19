@@ -16,7 +16,6 @@
 #define RANDOM_NUMBER_SEED 42
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
-#define NUM_MINES 10
 
 typedef struct {
   char username[10];
@@ -42,6 +41,7 @@ struct request {
   request_t* next;
 };
 
+const int NUM_MINES = 10;
 Auth DATABASE[BACKLOG];
 GameState BOARD = {};
 
@@ -103,8 +103,7 @@ int main(int argc, char const *argv[]) {
       check_login(new_connection);
       place_mines();
       adjacent_mines();
-      int mines = NUM_MINES;
-      if (send(new_connection, &mines, sizeof(int), 0) == -1) {
+      if (send(new_connection, &NUM_MINES, sizeof(int), 0) == -1) {
         perror("send");
         exit(1);
       }
@@ -306,8 +305,8 @@ void send_tiles(int new_connection) {
     tile_value = -1;
   } else {
     tile_value = BOARD.tiles[x][y].adjacent_mines;
+    BOARD.tiles[x][y].revealed = true;
   }
-  printf("tile value: %d\n", tile_value);
 
   if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
     perror("send");
