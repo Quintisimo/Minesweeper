@@ -114,6 +114,7 @@ bool login() {
 
 void quit() {
   close(SOCKET_ID);
+  exit(0);
 }
 
 void menu_option() {
@@ -190,7 +191,7 @@ void play_game() {
 
   scanf("%s", &user_selection);
 
-  if (user_selection == 'R') {
+  if (strcmp(&user_selection, "R") == 0) {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
     send_location(tile_location, user_selection);
@@ -200,10 +201,11 @@ void play_game() {
       quit();
     }
 
-  } else if (user_selection == 'P') {
+  } else if (strcmp(&user_selection, "P") == 0) {
     printf("Place flag: ");
     scanf("%s", tile_location);
-    send_location(tile_location, user_selection);
+    send_location(tile_location, 'P');
+    play_game();
 
   } else {
     quit();
@@ -248,7 +250,9 @@ void send_location(char tile_location[2], char user_selection) {
     TILE_VALUES[x][y] = '*';
   } else if (tile_value != -1 && strcmp(&TILE_VALUES[x][y], "+") == 0) {
     TILE_VALUES[x][y] = '0' + tile_value;
-  } else if (user_selection == 'P') {
+  }
+  
+  if (user_selection == 'P') {
     TILE_VALUES[x][y] = '+';
   }
 }
