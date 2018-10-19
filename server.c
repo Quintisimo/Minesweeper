@@ -103,11 +103,6 @@ int main(int argc, char const *argv[]) {
       check_login(new_connection);
       place_mines();
       adjacent_mines();
-      if (send(new_connection, &NUM_MINES, sizeof(int), 0) == -1) {
-        perror("send");
-        exit(1);
-      }
-
       send_tiles(new_connection);
       close(new_connection);
       exit(0);
@@ -231,7 +226,6 @@ void place_mines() {
     } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
     BOARD.tiles[x][y].is_mine = true;
-    printf("x: %d, y: %d, v: %d\n", x, y, BOARD.tiles[x][y].is_mine);
     // for (int i = 0; i < NUM_TILES_X; i++) {
     //   for (int j = 0; j < NUM_TILES_Y; j++) {
     //     if (tile_contains_mine(x,y)) {
@@ -268,6 +262,7 @@ void adjacent_mines() {
       if (BOARD.tiles[i - 1][j - 1].is_mine) {
         BOARD.tiles[i][j].adjacent_mines += 1;
       }
+      printf("ad: %d\n", BOARD.tiles[i][j].adjacent_mines);
     }
   }
 }
@@ -289,27 +284,30 @@ void send_tiles(int new_connection) {
   int y = 0;
   int tile_value = 0;
 
-  if (recv(new_connection, &x, sizeof(int), 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
+  while(1) {
+    if (recv(new_connection, &x, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
 
-  if (recv(new_connection, &y, sizeof(int), 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
-  
-  // printf("x:%d, y:%d\n", x, y);
-  // printf("%d", board.tiles[x][y].is_mine);
-  if (BOARD.tiles[x][y].is_mine) {
-    tile_value = -1;
-  } else {
-    tile_value = BOARD.tiles[x][y].adjacent_mines;
-    BOARD.tiles[x][y].revealed = true;
-  }
+    if (recv(new_connection, &y, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+    
+    // printf("x:%d, y:%d\n", x, y);
+    // printf("%d", board.tiles[x][y].is_mine);
+    if (BOARD.tiles[x][y].is_mine) {
+      tile_value = -1;
+    } else {
+      tile_value = BOARD.tiles[x][y].adjacent_mines;
+      BOARD.tiles[x][y].revealed = true;
+    }
+    printf("%d", tile_value);
 
-  if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
-    perror("send");
-    exit(1);
+    if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
   }
 }

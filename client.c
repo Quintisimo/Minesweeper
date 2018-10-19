@@ -13,18 +13,19 @@
 int MINES = 10;
 char USERNAME[10];
 char TILE_VALUES[9][9];
+int SOCKET_ID;
 
-bool login(int socket_id);
-void play_game(int socket_id);
+bool login();
+void play_game();
 int game_options();
-void menu_option(int socket_id);
-void quit(int socket_id);
+void menu_option();
+void quit();
 int letter_to_number(char letter);
-void send_location(int socket_id, char tile_location[2]);
-void leader_board(int socket_id);
+void send_location(char tile_location[2], char user_selection);
+void leader_board();
 
 int main(int argc, char const *argv[]) {
-  int socket_id;
+  
   // int bytes_size;
   // char buffer[MAXDATASIZE];
   struct hostent *server;
@@ -40,7 +41,7 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+  if ((SOCKET_ID = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket");
     exit(1);
   }
@@ -50,21 +51,21 @@ int main(int argc, char const *argv[]) {
   server_address.sin_addr = * ((struct in_addr*) server->h_addr);
   bzero(&server_address.sin_zero, 8);
 
-  if (connect(socket_id, (struct sockaddr*) &server_address, sizeof(struct sockaddr)) == -1) {
+  if (connect(SOCKET_ID, (struct sockaddr*) &server_address, sizeof(struct sockaddr)) == -1) {
     perror("connect");
     exit(1);
   }
 
-  if(login(socket_id)) {
+  if(login()) {
     printf("Welcome to the Minesweeper gaming system\n");
-    menu_option(socket_id);
+    menu_option();
   }
 
-  close(socket_id);
+  close(SOCKET_ID);
 }
 
 
-bool login(int socket_id) {
+bool login() {
   char username[10];
   char password[10];
   int has_username;
@@ -79,12 +80,12 @@ bool login(int socket_id) {
   printf("Username: ");
   fgets(username, 10, stdin);
   username[strcspn(username, "\n")] = '\0';
-  if (send(socket_id, &username, 10, 0) == -1) {
+  if (send(SOCKET_ID, &username, 10, 0) == -1) {
     perror("send");
     exit(1);
   }
 
-  if (recv(socket_id, &has_username, sizeof(int), 0) == -1) {
+  if (recv(SOCKET_ID, &has_username, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
@@ -92,38 +93,38 @@ bool login(int socket_id) {
   printf("Password: ");
   fgets(password, 10, stdin);
   password[strcspn(password, "\n")] = '\0';
-  if (send(socket_id, &password, 10, 0) == -1) {
+  if (send(SOCKET_ID, &password, 10, 0) == -1) {
     perror("send");
     exit(1);
   }
 
-  if (recv(socket_id, &has_password, sizeof(int), 0) == -1) {
+  if (recv(SOCKET_ID, &has_password, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
 
   if (has_username == -1 || has_password == -1) {
     printf("You either entered an incorrect username or password. Disconnecting.\n");
-    quit(socket_id);
+    quit(SOCKET_ID);
     return false;
   } else {
     return true;
   }
 }
 
-void quit(int socket_id) {
-  close(socket_id);
+void quit() {
+  close(SOCKET_ID);
 }
 
-void menu_option(int socket_id) {
+void menu_option() {
   int selection = game_options();
 
   if (selection == 1) {
-    play_game(socket_id);
+    play_game();
   } else if (selection == 2) {
-    leader_board(socket_id);
+    leader_board();
   } else {
-    quit(socket_id);
+    quit();
   }
 }
 
@@ -147,7 +148,7 @@ int game_options() {
   return selection;
 }
 
-void play_game(int socket_id) {
+void play_game() {
   // bool finished = false;
   char user_selection;
   char tile_location[2];
@@ -188,20 +189,20 @@ void play_game(int socket_id) {
   if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    send_location(socket_id, tile_location);
-    play_game(socket_id);
+    send_location(tile_location, user_selection);
+    play_game();
     if (tile_value == -1) {
-      printf("Game Over\n");
-      quit(socket_id);
+      printf("Game Over! You hit a mine\n");
+      quit();
     }
 
   } else if (user_selection == 'P') {
-    printf("Place flag: \n");
+    printf("Place flag: ");
     scanf("%s", tile_location);
-    send_location(socket_id, tile_location);
+    send_location(tile_location, user_selection);
 
   } else {
-    quit(socket_id);
+    quit();
   }
 }
 
@@ -214,39 +215,41 @@ int letter_to_number(char letter) {
   return -1;
 }
 
-void send_location(int socket_id, char tile_location[2]) {
+void send_location(char tile_location[2], char user_selection) {
   int x = atoi(&tile_location[1]) - 1;
   int y = letter_to_number(tile_location[0]);
-  int tile_value = 0;
+  int tile_value;
 
   if (x > 8 || y == -1) {
     fprintf(stderr, "Outside grid");
     exit(1);
   }
 
-  if (send(socket_id, &x, sizeof(int), 0) == -1) {
+  if (send(SOCKET_ID, &x, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
   }
 
-  if (send(socket_id, &y, sizeof(int), 0) == -1) {
+  if (send(SOCKET_ID, &y, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
   }
 
-  if (recv(socket_id, &tile_value, sizeof(int), 0) == -1) {
+  if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
 
   if (tile_value == -1) {
     TILE_VALUES[x][y] = '*';
-  } else {
+  } else if (tile_value != -1 && TILE_VALUES[x][y] != '+') {
     TILE_VALUES[x][y] = '0' + tile_value;
+  } else if (user_selection == 'P') {
+    TILE_VALUES[x][y] = '+';
   }
 }
 
-void leader_board(int socket_id) {
+void leader_board() {
   int time_taken = 0;
   int games_won = 0;
   int games_played = 0;
@@ -264,5 +267,5 @@ void leader_board(int socket_id) {
   printf("|   %d   |\n", games_played);
   printf("===========================================================\n\n");
 
-  menu_option(socket_id);
+  menu_option();
 }
