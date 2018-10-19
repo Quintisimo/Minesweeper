@@ -12,7 +12,7 @@
 #define MAXDATASIZE 100
 char USERNAME[10];
 
-void login(int socket_id);
+bool login(int socket_id);
 void play_game(int socket_id);
 int game_options();
 void menu_option(int socket_id);
@@ -53,15 +53,16 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  login(socket_id);
-  printf("Welcome to the Minesweeper gaming system\n");
-  menu_option(socket_id);
+  if(login(socket_id)) {
+    printf("Welcome to the Minesweeper gaming system\n");
+    menu_option(socket_id);
+  }
 
   close(socket_id);
 }
 
 
-void login(int socket_id) {
+bool login(int socket_id) {
   char username[10];
   char password[10];
   int has_username;
@@ -72,47 +73,39 @@ void login(int socket_id) {
   printf("====================================================\n\n");
   printf("You are required to login with your username and password\n\n");
 
-  while(1) {
-    printf("Username: ");
-    fgets(username, 10, stdin);
-    username[strcspn(username, "\n")] = '\0';
-    if (send(socket_id, &username, 10, 0) == -1) {
-      perror("send");
-      exit(1);
-    }
 
-    if (recv(socket_id, &has_username, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
-
-    if (has_username == -1) {
-      printf("Incorrect username\n");
-    } else {
-      break;
-    }
+  printf("Username: ");
+  fgets(username, 10, stdin);
+  username[strcspn(username, "\n")] = '\0';
+  if (send(socket_id, &username, 10, 0) == -1) {
+    perror("send");
+    exit(1);
   }
 
-  while(1) {
-    printf("Password: ");
-    fgets(password, 10, stdin);
-    password[strcspn(password, "\n")] = '\0';
-    if (send(socket_id, &password, 10, 0) == -1) {
-      perror("send");
-      exit(1);
-    }
+  if (recv(socket_id, &has_username, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
 
-    if (recv(socket_id, &has_password, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
+  printf("Password: ");
+  fgets(password, 10, stdin);
+  password[strcspn(password, "\n")] = '\0';
+  if (send(socket_id, &password, 10, 0) == -1) {
+    perror("send");
+    exit(1);
+  }
 
-    if (has_password == -1) {
-      printf("Incorrect password\n");
-    } else {
-      strcpy(USERNAME, username);
-      break;
-    }
+  if (recv(socket_id, &has_password, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  if (has_username == -1 || has_password == -1) {
+    printf("You either entered an incorrect username or password. Disconnecting.\n");
+    quit(socket_id);
+    return false;
+  } else {
+    return true;
   }
 }
 

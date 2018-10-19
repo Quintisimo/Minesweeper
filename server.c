@@ -171,48 +171,36 @@ void check_login(int new_connection) {
   int has_username = -1;
   int has_password = -1;
 
-  while(1) {
-    if (recv(new_connection, &username, 10, 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
+  if (recv(new_connection, &username, 10, 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
 
-    for (int i = 0; i < BACKLOG; i++) {
-      if (strcmp(username, DATABASE[i].username) == 0) {
-        has_username = 0;
-      }
-    }
-
-    if (send(new_connection, &has_username, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
-
-    if (has_username == 0) {
-      break;
+  for (int i = 0; i < BACKLOG; i++) {
+    if (strcmp(username, DATABASE[i].username) == 0) {
+      has_username = 0;
     }
   }
 
-  while(1) {
-    if (recv(new_connection, &password, 10, 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
+  if (send(new_connection, &has_username, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
 
-    for (int i = 0; i < BACKLOG; i++) {
-      if (strcmp(password, DATABASE[i].password) == 0) {
-        has_password = 0;
-      }
-    }
+  if (recv(new_connection, &password, 10, 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
 
-    if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
+  for (int i = 0; i < BACKLOG; i++) {
+    if (strcmp(password, DATABASE[i].password) == 0) {
+      has_password = 0;
     }
+  }
 
-    if (has_password == 0) {
-      break;
-    }
+  if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
   }
 }
 
