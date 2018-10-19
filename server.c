@@ -262,7 +262,6 @@ void adjacent_mines() {
       if (BOARD.tiles[i - 1][j - 1].is_mine) {
         BOARD.tiles[i][j].adjacent_mines += 1;
       }
-      printf("ad: %d\n", BOARD.tiles[i][j].adjacent_mines);
     }
   }
 }

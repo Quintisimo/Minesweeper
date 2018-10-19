@@ -162,17 +162,21 @@ void play_game() {
   }
   printf("\n");
 
-  for(int i = 1; i < 23; i++) {
+  for(int i = 0; i < 22; i++) {
     printf("-");
   }
 
   printf("\n");
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 9; i++) {
     int num = i + 'A';
-    printf("%c | ", (char)num);
+    printf("%c |", (char)num);
 
     for (int j = 0; j < 9; j++) {
-        printf("%c ", TILE_VALUES[i][j]);
+      if (strcmp(&TILE_VALUES[j][i], "") == 0) {
+        printf("  ");
+      } else {
+        printf(" %c", TILE_VALUES[j][i]);
+      }
     }
     printf("\n");
   }
@@ -242,7 +246,7 @@ void send_location(char tile_location[2], char user_selection) {
 
   if (tile_value == -1) {
     TILE_VALUES[x][y] = '*';
-  } else if (tile_value != -1 && TILE_VALUES[x][y] != '+') {
+  } else if (tile_value != -1 && strcmp(&TILE_VALUES[x][y], "+") == 0) {
     TILE_VALUES[x][y] = '0' + tile_value;
   } else if (user_selection == 'P') {
     TILE_VALUES[x][y] = '+';
