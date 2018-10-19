@@ -42,14 +42,17 @@ struct request {
   request_t* next;
 };
 
+Auth DATABASE[BACKLOG];
+GameState BOARD = {};
+
 struct request *requests = NULL;
 struct request *last_request = NULL;
 
-void authentication(Auth database[]);
-void check_login(int new_connection, Auth database[]);
-void place_mines(GameState board);
-void adjacent_mines(GameState board);
-void send_tiles(int socket_id, GameState board);
+void authentication();
+void check_login(int new_connection);
+void place_mines();
+void adjacent_mines();
+void send_tiles(int socket_id);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -57,8 +60,6 @@ int main(int argc, char const *argv[]) {
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
-  Auth Database[BACKLOG];
-  GameState Board = {};
   srand(RANDOM_NUMBER_SEED);
 
   if (argc != 2) {
@@ -69,7 +70,7 @@ int main(int argc, char const *argv[]) {
   server_address.sin_port = htons(atoi(argv[1]));
   server_address.sin_addr.s_addr = INADDR_ANY;
 
-  authentication(Database);
+  authentication();
 
   if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket");
@@ -99,16 +100,16 @@ int main(int argc, char const *argv[]) {
     printf("Server received a connection from %s\n", inet_ntoa(client_address.sin_addr));
 
     if (!fork()) {
-      check_login(new_connection, Database);
-      place_mines(Board);
-      adjacent_mines(Board);
+      check_login(new_connection);
+      place_mines();
+      adjacent_mines();
       int mines = NUM_MINES;
       if (send(new_connection, &mines, sizeof(int), 0) == -1) {
         perror("send");
         exit(1);
       }
-      printf("%d", Board.tiles[6][1].is_mine); //! mines are not being placed
-      send_tiles(new_connection, Board);
+
+      send_tiles(new_connection);
       close(new_connection);
       exit(0);
     }
@@ -118,7 +119,7 @@ int main(int argc, char const *argv[]) {
   }
 }
 
-void authentication(Auth database[]) {
+void authentication() {
   FILE *authentication;
   int array_index = 0;
   char buffer[1000];
@@ -137,7 +138,7 @@ void authentication(Auth database[]) {
         if (isspace(username[strlen(username) - 1])) {
           username[strlen(username) - 1] = '\0';
         }
-        strcpy(database[array_index].username, username);
+        strcpy(DATABASE[array_index].username, username);
       }
     } else {
       fprintf(stderr, "Error reading usernames from Authentication.txt\n");
@@ -149,7 +150,7 @@ void authentication(Auth database[]) {
         if (isspace(password[strlen(password) - 1])) {
           password[strlen(password) - 1] = '\0';
         }
-        strcpy(database[array_index].password, password);
+        strcpy(DATABASE[array_index].password, password);
       }
     } else {
       fprintf(stderr, "Error reading password from Authentication.txt\n");
@@ -164,48 +165,58 @@ void authentication(Auth database[]) {
   fclose(authentication);
 }
 
-void check_login(int new_connection, Auth database[]) {
+void check_login(int new_connection) {
   char username[10];
   char password[10];
   int has_username = -1;
   int has_password = -1;
 
-  if (recv(new_connection, &username, 10, 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
+  while(1) {
+    if (recv(new_connection, &username, 10, 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
 
-  for (int i = 0; i < BACKLOG; i++) {
-    if (strcmp(username, database[i].username) == 0) {
-      has_username = 0;
+    for (int i = 0; i < BACKLOG; i++) {
+      if (strcmp(username, DATABASE[i].username) == 0) {
+        has_username = 0;
+      }
+    }
+
+    if (send(new_connection, &has_username, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+
+    if (has_username == 0) {
       break;
     }
   }
 
-  if (send(new_connection, &has_username, sizeof(int), 0) == -1) {
-    perror("send");
-    exit(1);
-  }
+  while(1) {
+    if (recv(new_connection, &password, 10, 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
 
-  if (recv(new_connection, &password, 10, 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
+    for (int i = 0; i < BACKLOG; i++) {
+      if (strcmp(password, DATABASE[i].password) == 0) {
+        has_password = 0;
+      }
+    }
 
-  for (int i = 0; i < BACKLOG; i++) {
-    if (strcmp(password, database[i].password) == 0) {
-      has_password = 0;
+    if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+
+    if (has_password == 0) {
       break;
     }
-  }
-
-  if (send(new_connection, &has_password, sizeof(int), 0) == -1) {
-    perror("send");
-    exit(1);
   }
 }
 
-bool tile_contains_mine(int x, int y, GameState board) {
+bool tile_contains_mine(int x, int y) {
   // bool contains_mine;
 
   // for (int i = 0; i < NUM_TILES_X; i++) {
@@ -218,10 +229,10 @@ bool tile_contains_mine(int x, int y, GameState board) {
   //   }
   // }
   // return contains_mine;
-  return board.tiles[x][y].is_mine;
+  return BOARD.tiles[x][y].is_mine;
 }
 
-void place_mines(GameState board) {
+void place_mines() {
   for (int i = 0; i < NUM_MINES; i++) {
     int x;
     int y;
@@ -230,10 +241,10 @@ void place_mines(GameState board) {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
     // } while (tile_contains_mine(x,y));
-    } while(board.tiles[x][y].is_mine);
+    } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
-    board.tiles[x][y].is_mine = true;
-    printf("x: %d, y: %d, v: %d\n", x, y, board.tiles[x][y].is_mine);
+    BOARD.tiles[x][y].is_mine = true;
+    printf("x: %d, y: %d, v: %d\n", x, y, BOARD.tiles[x][y].is_mine);
     // for (int i = 0; i < NUM_TILES_X; i++) {
     //   for (int j = 0; j < NUM_TILES_Y; j++) {
     //     if (tile_contains_mine(x,y)) {
@@ -244,31 +255,31 @@ void place_mines(GameState board) {
   }
 }
 
-void adjacent_mines(GameState board) {
+void adjacent_mines() {
   for (int i = 0; i < NUM_TILES_X; i++) {
     for (int j = 0; j < NUM_TILES_Y; j++) {
-      if (board.tiles[i + 1][j].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i + 1][j].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
       
-      if (board.tiles[i][j + 1].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i][j + 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
       
-      if (board.tiles[i + 1][j + 1].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i + 1][j + 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board.tiles[i - 1][j].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i - 1][j].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board.tiles[i][j - 1].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i][j - 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board.tiles[i - 1][j - 1].is_mine) {
-        board.tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i - 1][j - 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
     }
   }
@@ -286,7 +297,7 @@ void adjacent_mines(GameState board) {
 //   }
 // }
 
-void send_tiles(int new_connection, GameState board) {
+void send_tiles(int new_connection) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
@@ -303,10 +314,10 @@ void send_tiles(int new_connection, GameState board) {
   
   // printf("x:%d, y:%d\n", x, y);
   // printf("%d", board.tiles[x][y].is_mine);
-  if (board.tiles[x][y].is_mine) {
+  if (BOARD.tiles[x][y].is_mine) {
     tile_value = -1;
   } else {
-    tile_value = board.tiles[x][y].adjacent_mines;
+    tile_value = BOARD.tiles[x][y].adjacent_mines;
   }
   printf("tile value: %d\n", tile_value);
 
