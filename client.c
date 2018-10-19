@@ -159,9 +159,43 @@ void play_game(int socket_id) {
   }
   
   printf("\nRemaining mines %i\n\n", mines);
-  printf("   1 2 3 4 5 6 7 8 9\n");
-  printf("---------------------\n");
-  printf("A |\nB |\nC |\nD |\nE |\nF |\nG |\nH |\nI |\n\n");
+  printf("   ");
+
+  for(int i = 1; i < 10; i++) {
+    printf("%d ", i);
+  }
+  printf("\n");
+
+  for(int i = 1; i < 24; i++) {
+    printf("-");
+  }
+
+  printf("\n");
+  for (int i = 0; i < 10; i++) {
+    int num = i + 'A';
+    printf("%c |\n", (char)num);
+  }
+
+  // printf("   1 2 3 4 5 6 7 8 9\n");
+  // printf("---------------------\n");
+  // printf("A |");
+  // printf("\n");
+  // printf("B |");
+  // printf("\n");
+  // printf("C |");
+  // printf("\n");
+  // printf("D |");
+  // printf("\n");
+  // printf("E |");
+  // printf("\n");
+  // printf("F |");
+  // printf("\n");
+  // printf("G |");
+  // printf("\n");
+  // printf("H |");
+  // printf("\n");
+  // printf("I |");
+  printf("\n\n");
   printf("Choose an option\n");
   printf("<R> Reveal tile\n");
   printf("<P> Place flag\n");
