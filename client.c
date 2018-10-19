@@ -248,7 +248,7 @@ void send_location(char tile_location[2], char user_selection) {
 
   if (tile_value == -1) {
     TILE_VALUES[x][y] = '*';
-  } else if (tile_value != -1 && strcmp(&TILE_VALUES[x][y], "+") == 0) {
+  } else {
     TILE_VALUES[x][y] = '0' + tile_value;
   }
   
