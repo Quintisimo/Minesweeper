@@ -10,7 +10,9 @@
 #include <stdbool.h>
 
 #define MAXDATASIZE 100
+int MINES = 10;
 char USERNAME[10];
+char TILE_VALUES[9][9];
 
 bool login(int socket_id);
 void play_game(int socket_id);
@@ -18,7 +20,7 @@ int game_options();
 void menu_option(int socket_id);
 void quit(int socket_id);
 int letter_to_number(char letter);
-int send_location(int socket_id, char tile_location[2]);
+void send_location(int socket_id, char tile_location[2]);
 void leader_board(int socket_id);
 
 int main(int argc, char const *argv[]) {
@@ -147,54 +149,33 @@ int game_options() {
 
 void play_game(int socket_id) {
   // bool finished = false;
-  int mines = 0;
   char user_selection;
   char tile_location[2];
   int tile_value = 0;
-
-  // receive number of mines
-  if (recv(socket_id, &mines, sizeof(int), 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
   
-  printf("\nRemaining mines %i\n\n", mines);
-  printf("   ");
+  printf("\nRemaining mines: %i\n\n", MINES);
+  printf("    ");
 
   for(int i = 1; i < 10; i++) {
     printf("%d ", i);
   }
   printf("\n");
 
-  for(int i = 1; i < 24; i++) {
+  for(int i = 1; i < 23; i++) {
     printf("-");
   }
 
   printf("\n");
   for (int i = 0; i < 10; i++) {
     int num = i + 'A';
-    printf("%c |\n", (char)num);
+    printf("%c | ", (char)num);
+
+    for (int j = 0; j < 9; j++) {
+        printf("%c ", TILE_VALUES[i][j]);
+    }
+    printf("\n");
   }
 
-  // printf("   1 2 3 4 5 6 7 8 9\n");
-  // printf("---------------------\n");
-  // printf("A |");
-  // printf("\n");
-  // printf("B |");
-  // printf("\n");
-  // printf("C |");
-  // printf("\n");
-  // printf("D |");
-  // printf("\n");
-  // printf("E |");
-  // printf("\n");
-  // printf("F |");
-  // printf("\n");
-  // printf("G |");
-  // printf("\n");
-  // printf("H |");
-  // printf("\n");
-  // printf("I |");
   printf("\n\n");
   printf("Choose an option\n");
   printf("<R> Reveal tile\n");
@@ -207,8 +188,8 @@ void play_game(int socket_id) {
   if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    tile_value = send_location(socket_id, tile_location);
-
+    send_location(socket_id, tile_location);
+    play_game(socket_id);
     if (tile_value == -1) {
       printf("Game Over\n");
       quit(socket_id);
@@ -217,7 +198,7 @@ void play_game(int socket_id) {
   } else if (user_selection == 'P') {
     printf("Place flag: \n");
     scanf("%s", tile_location);
-    tile_value = send_location(socket_id, tile_location);
+    send_location(socket_id, tile_location);
 
   } else {
     quit(socket_id);
@@ -233,7 +214,7 @@ int letter_to_number(char letter) {
   return -1;
 }
 
-int send_location(int socket_id, char tile_location[2]) {
+void send_location(int socket_id, char tile_location[2]) {
   int x = atoi(&tile_location[1]) - 1;
   int y = letter_to_number(tile_location[0]);
   int tile_value = 0;
@@ -257,7 +238,12 @@ int send_location(int socket_id, char tile_location[2]) {
     perror("recv");
     exit(1);
   }
-  return tile_value;
+
+  if (tile_value == -1) {
+    TILE_VALUES[x][y] = '*';
+  } else {
+    TILE_VALUES[x][y] = '0' + tile_value;
+  }
 }
 
 void leader_board(int socket_id) {
