@@ -19,24 +19,25 @@
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
 
-struct User {
-	char *username;
-	char *password;
-} *users;
+// struct User {
+// 	char *username;
+// 	char *password;
+// } *users;
 
 struct LeaderBoard {
-	char *username;
+	// char *username;
 	int games_won;
 	int games_played;
 } *leaderBoard = NULL;
 
-// LEADER BOARD 
-int user_count = 0;
-int entry_count = 0;
-char buf[MAXDATASIZE];
-int add_leaderboard_entry(char *name);
-int add_win_for(char *name);
-int add_game_played(char *name);
+// // LEADER BOARD 
+// int auth_count = 0;
+// int user_count = 0;
+// int entry_count = 0;
+// char buf[MAXDATASIZE];
+// int add_leaderboard_entry(char *name);
+// int add_win_for(char *name);
+// int add_game_played(char *name);
 
 typedef struct {
   char username[10];
@@ -74,7 +75,8 @@ void check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
 void send_tiles(int socket_id);
-int leader_board(int new_connection);
+void leaderboard(int new_connection);
+void check_win();
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -126,6 +128,7 @@ int main(int argc, char const *argv[]) {
       place_mines();
       adjacent_mines();
       send_tiles(new_connection);
+      leaderboard(new_connection);
       // add_leaderboard_entry(username);
       // add_win_for(username);
       // add_game_played(username);
@@ -178,7 +181,7 @@ void authentication() {
 
     if (username != NULL && (strcmp(username, "Username") != 0) && password != NULL && (strcmp(password, "Password") != 0)) {
       array_index++;      
-      // add_leaderboard_entry(username);
+      //add_leaderboard_entry(users.username);
     }
   }
 
@@ -337,89 +340,107 @@ void send_tiles(int new_connection) {
   }
 }
 
-// void leaderboard(int new_connection) {
-//   int played = games_played;
-//   int won = games_won;
-//   int timer = time_taken;
+void leaderboard(int new_connection) {
+  int time_taken = 0;
+  int timer = 0;
+
+  while (1) {
+    if (recv(new_connection, &time_taken, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+
+    timer = 2;
+
+    if (send(new_connection, &timer, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+  }
+
+  // int played = 1;
+  // int won = 1;
+  // int timer = 1;
   
-//   if (send(new_connection, &played, sizeof(int), 0) == -1) {
-//     perror("send");
-//     exit(1);
-//   } 
+  // if (send(new_connection, &played, sizeof(int), 0) == -1) {
+  //   printf("sent");
+  //   perror("send");
+  //   exit(1);
+  // } 
 
-//   if (send(new_connection, &won, sizeof(int), 0) == -1) {
-//     perror("send");
-//     exit(1);
-//   } 
+  // if (send(new_connection, &won, sizeof(int), 0) == -1) {
+  //   perror("send");
+  //   exit(1);
+  // } 
 
-//   if (send(new_connection, &timer, sizeof(int), 0) == -1) {
-//     perror("send");
-//     exit(1);
-//   } 
+  // if (send(new_connection, &timer, sizeof(int), 0) == -1) {
+  //   perror("send");
+  //   exit(1);
+  // } 
+}
+
+// int addWinFor(char *name){
+
+// 	for (int i = 0; i < user_count; i++){
+// 		if(strcmp(leaderBoard[i].username, name) == 0){
+// 			leaderBoard[i].games_won++;
+// 			leaderBoard[i].games_played++;
+
+// 			return 1;
+// 		}
+// 	}
+// 	return 0;
 // }
 
-int addWinFor(char *name){
+// int add_game_played(char *name){
 
-	for (int i = 0; i < user_count; i++){
-		if(strcmp(leaderBoard[i].username, name) == 0){
-			leaderBoard[i].games_won++;
-			leaderBoard[i].games_played++;
+// 	for (int i = 0; i < user_count; i++){
+// 		if(strcmp(leaderBoard[i].username, name) == 0){
+// 			leaderBoard[i].games_played++;
 
-			return 1;
-		}
-	}
-	return 0;
-}
+// 			return 1;
+// 		}
+// 	}
 
-int add_game_played(char *name){
+// 	return 0;
+// }
 
-	for (int i = 0; i < user_count; i++){
-		if(strcmp(leaderBoard[i].username, name) == 0){
-			leaderBoard[i].games_played++;
+// int add_leaderboard_entry(char *name){
 
-			return 1;
-		}
-	}
+// 	// Check to see if the user already exists in the data store
+// 	for (int i = 0; i < user_count; i++){
+// 		if(strcmp(leaderBoard[i].username, name) == 0){
+// 		// they're the same
 
-	return 0;
-}
+// 		return -1;
+// 		}
+// 	}
 
-int add_leaderboard_entry(char *name){
+// 	user_count++;
+// 	leaderBoard = realloc(leaderBoard, user_count * sizeof(struct LeaderBoard));
+// 	leaderBoard[user_count - 1].username = malloc(strlen(name) + 1);
+// 	strcpy(leaderBoard[user_count - 1].username, name);
+// 	leaderBoard[user_count - 1].games_won = 0;
+// 	leaderBoard[user_count - 1].games_played = 0;
 
-	// Check to see if the user already exists in the data store
-	for (int i = 0; i < user_count; i++){
-		if(strcmp(leaderBoard[i].username, name) == 0){
-		// they're the same
+// 	return 1; // return success
+// }
 
-		return -1;
-		}
-	}
+// int leader_board(int new_connection){
 
-	user_count++;
-	leaderBoard = realloc(leaderBoard, user_count * sizeof(struct LeaderBoard));
-	leaderBoard[user_count - 1].username = malloc(strlen(name) + 1);
-	strcpy(leaderBoard[user_count - 1].username, name);
-	leaderBoard[user_count - 1].games_won = 0;
-	leaderBoard[user_count - 1].games_played = 0;
+// 	for (int i = 0; i < user_count; i++){
+// 		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
 
-	return 1; // return success
-}
+// 		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
+// 			perror("recv");
+//       exit(1);
+// 		}
+// 	}
 
-int leader_board(int new_connection){
+// 	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
+// 		perror("recv");
+//     exit(1);
+// 	}
 
-	for (int i = 0; i < user_count; i++){
-		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
-
-		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
-			perror("recv");
-      exit(1);
-		}
-	}
-
-	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
-		perror("recv");
-    exit(1);
-	}
-
-	return 1;
-}
+// 	return 1;
+// }
