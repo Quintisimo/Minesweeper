@@ -10,12 +10,33 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <signal.h>
+#include <pthread.h>
 
 #define MAXDATASIZE 100
 #define BACKLOG 10
 #define RANDOM_NUMBER_SEED 42
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
+
+struct User {
+	char *username;
+	char *password;
+} *users;
+
+struct LeaderBoard {
+	char *username;
+	int games_won;
+	int games_played;
+} *leaderBoard = NULL;
+
+// LEADER BOARD 
+int user_count = 0;
+int entry_count = 0;
+char buf[MAXDATASIZE];
+int add_leaderboard_entry(char *name);
+int add_win_for(char *name);
+int add_game_played(char *name);
 
 typedef struct {
   char username[10];
@@ -34,25 +55,26 @@ typedef struct {
   Tile tiles[NUM_TILES_X][NUM_TILES_Y];
 } GameState;
 
-typedef struct request request_t;
-struct request {
-  int number;
-  int sockfd;
-  request_t* next;
-};
+// typedef struct request request_t;
+// struct request {
+//   int number;
+//   int sockfd;
+//   request_t* next;
+// };
 
 const int NUM_MINES = 10;
 Auth DATABASE[BACKLOG];
 GameState BOARD = {};
 
-struct request *requests = NULL;
-struct request *last_request = NULL;
+// struct request *requests = NULL;
+// struct request *last_request = NULL;
 
 void authentication();
 void check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
 void send_tiles(int socket_id);
+int leader_board(int new_connection);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -104,6 +126,9 @@ int main(int argc, char const *argv[]) {
       place_mines();
       adjacent_mines();
       send_tiles(new_connection);
+      // add_leaderboard_entry(username);
+      // add_win_for(username);
+      // add_game_played(username);
       close(new_connection);
       exit(0);
     }
@@ -151,8 +176,9 @@ void authentication() {
       exit(1);
     }
 
-    if (username != NULL && (strcmp(password, "Password") != 0) && password != NULL && (strcmp(password, "Password") != 0)) {
-      array_index++;
+    if (username != NULL && (strcmp(username, "Username") != 0) && password != NULL && (strcmp(password, "Password") != 0)) {
+      array_index++;      
+      // add_leaderboard_entry(username);
     }
   }
 
@@ -309,4 +335,91 @@ void send_tiles(int new_connection) {
       exit(1);
     }
   }
+}
+
+// void leaderboard(int new_connection) {
+//   int played = games_played;
+//   int won = games_won;
+//   int timer = time_taken;
+  
+//   if (send(new_connection, &played, sizeof(int), 0) == -1) {
+//     perror("send");
+//     exit(1);
+//   } 
+
+//   if (send(new_connection, &won, sizeof(int), 0) == -1) {
+//     perror("send");
+//     exit(1);
+//   } 
+
+//   if (send(new_connection, &timer, sizeof(int), 0) == -1) {
+//     perror("send");
+//     exit(1);
+//   } 
+// }
+
+int addWinFor(char *name){
+
+	for (int i = 0; i < user_count; i++){
+		if(strcmp(leaderBoard[i].username, name) == 0){
+			leaderBoard[i].games_won++;
+			leaderBoard[i].games_played++;
+
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int add_game_played(char *name){
+
+	for (int i = 0; i < user_count; i++){
+		if(strcmp(leaderBoard[i].username, name) == 0){
+			leaderBoard[i].games_played++;
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int add_leaderboard_entry(char *name){
+
+	// Check to see if the user already exists in the data store
+	for (int i = 0; i < user_count; i++){
+		if(strcmp(leaderBoard[i].username, name) == 0){
+		// they're the same
+
+		return -1;
+		}
+	}
+
+	user_count++;
+	leaderBoard = realloc(leaderBoard, user_count * sizeof(struct LeaderBoard));
+	leaderBoard[user_count - 1].username = malloc(strlen(name) + 1);
+	strcpy(leaderBoard[user_count - 1].username, name);
+	leaderBoard[user_count - 1].games_won = 0;
+	leaderBoard[user_count - 1].games_played = 0;
+
+	return 1; // return success
+}
+
+int leader_board(int new_connection){
+
+	for (int i = 0; i < user_count; i++){
+		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
+
+		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
+			perror("recv");
+      exit(1);
+		}
+	}
+
+	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
+		perror("recv");
+    exit(1);
+	}
+
+	return 1;
 }
