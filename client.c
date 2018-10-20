@@ -260,19 +260,23 @@ void send_location(char tile_location[2], char user_selection) {
 
 void leaderboard() {
   int time_taken = 0;
-  int timer;
-  int games_won = 0;
-  int games_played = 0;
+  // int timer = 0;
+  // int games_won = 0;
+  // int games_played = 0;
+
+  printf("%d", time_taken);
 
   if (send(SOCKET_ID, &time_taken, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
   }
   
-  if (recv(SOCKET_ID, &timer, sizeof(int), 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
+  // printf("%d", time_taken);
+
+  // if (recv(SOCKET_ID, &timer, sizeof(int), 0) == -1) {
+  //   perror("recv");
+  //   exit(1);
+  // }
 
   // if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
   //   perror("recv");
@@ -284,20 +288,20 @@ void leaderboard() {
   //   exit(1);
   // }
 
-  printf("\n===========================================================");
-  printf("\n|      Name      ");
-  printf("|  Time (sec)  ");
-  printf("|  Wins  ");
-  printf("|  Games Played  |\n");
-  printf("===========================================================\n");
+  // printf("\n===========================================================");
+  // printf("\n|      Name      ");
+  // printf("|  Time (sec)  ");
+  // printf("|  Wins  ");
+  // printf("|  Games Played  |\n");
+  // printf("===========================================================\n");
 
-  printf("\n|     %s     ", USERNAME);
-  printf("|      %d      ", timer);
-  printf("|    %d    ", games_won);
-  printf("|       %d       |\n", games_played);
-  printf("===========================================================\n\n");
+  // printf("\n|     %s     ", USERNAME);
+  // printf("|      %d      ", timer);
+  // printf("|    %d    ", games_won);
+  // printf("|       %d       |\n", games_played);
+  // printf("===========================================================\n\n");
 
-  menu_option();
+  // menu_option();
 }
 
 // void leaderboard(){

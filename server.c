@@ -342,20 +342,24 @@ void send_tiles(int new_connection) {
 
 void leaderboard(int new_connection) {
   int time_taken = 0;
-  int timer = 0;
+  // int timer = 0;
 
+  // IT'S NOT RECEIVING THE TIME TAKEN ???
   while (1) {
     if (recv(new_connection, &time_taken, sizeof(int), 0) == -1) {
       perror("recv");
       exit(1);
     }
 
-    timer = 2;
+    printf("%d", time_taken);
 
-    if (send(new_connection, &timer, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
+
+  //   timer = 2;
+
+  //   if (send(new_connection, &timer, sizeof(int), 0) == -1) {
+  //     perror("send");
+  //     exit(1);
+  //   }
   }
 
   // int played = 1;
