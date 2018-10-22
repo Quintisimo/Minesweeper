@@ -258,99 +258,63 @@ void send_location(char tile_location[2], char user_selection) {
   }
 }
 
-void leaderboard() {
-  int time_taken = 0;
-  // int timer = 0;
-  // int games_won = 0;
-  // int games_played = 0;
+void leaderboard(){
 
-  printf("%d", time_taken);
+	char *array[100];
+	int index = -1;
 
-  if (send(SOCKET_ID, &time_taken, sizeof(int), 0) == -1) {
+  if (send(SOCKET_ID, "lb-start", sizeof("lb-start"), 0) == -1) {
     perror("send");
     exit(1);
+  }  
+
+  if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+
+	// do {
+	// 	index++;
+	// 	array[index] = malloc(sizeof buf);
+	// 	strcpy(array[index], buf);
+	//   if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+  //     perror("recv");
+  //     exit(1);
+  //   }
+
+	// } while(strcmp(buf, "lb-end") != 0);
+
+  if (strcmp(buf, "lb-end") != 0) {
+    index++;
+		array[index] = malloc(sizeof buf);
+		strcpy(array[index], buf);
+	  if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
   }
-  
-  // printf("%d", time_taken);
 
-  // if (recv(SOCKET_ID, &timer, sizeof(int), 0) == -1) {
-  //   perror("recv");
-  //   exit(1);
-  // }
 
-  // if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
-  //   perror("recv");
-  //   exit(1);
-  // }
+	puts("\nLeaderboard:");
+	puts("------------------------------------------------");
+	printf("| %-20s| ", "Name");
+	printf("%-8s| ", "Time");
+	printf("%-6s| ", "Plays");
+	printf("%-5s|\n", "Wins");
+	puts("------------------------------------------------");
 
-  // if (recv(SOCKET_ID, &games_won, sizeof(int), 0) == -1) {
-  //   perror("recv");
-  //   exit(1);
-  // }
+	for(int i = 0; i <= index; i++){
+		//printf("%s\n", array[i]);
+		printf("| %-20s| ", strtok(array[i], "&")); // name
+		printf("%-8s| ", strtok(NULL, "&")); // time
+		printf("%-6s| ", strtok(NULL, "&")); // plays
+		printf("%-5s|\n", strtok(NULL, "&")); // wins
+	}
 
-  // printf("\n===========================================================");
-  // printf("\n|      Name      ");
-  // printf("|  Time (sec)  ");
-  // printf("|  Wins  ");
-  // printf("|  Games Played  |\n");
-  // printf("===========================================================\n");
+	for (int i = 0; i < index; i++){
+		free(array[i]);
+	}
 
-  // printf("\n|     %s     ", USERNAME);
-  // printf("|      %d      ", timer);
-  // printf("|    %d    ", games_won);
-  // printf("|       %d       |\n", games_played);
-  // printf("===========================================================\n\n");
-
-  // menu_option();
+  puts("------------------------------------------------");
+	menu_option();
 }
-
-// void leaderboard(){
-
-// 	char *array[100];
-// 	int index = -1;
-
-// 		if (send(SOCKET_ID, "lb-start", sizeof("lb-start"), 0) == -1) { 
-// 			perror("send");
-//       exit(1);
-// 		}
-
-//   if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-//       perror("recv");
-//       exit(1);
-//     }
-
-// 	do {
-// 		index++;
-// 		array[index] = malloc(sizeof buf);
-// 		strcpy(array[index], buf);
-// 	  if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-//       perror("recv");
-//       exit(1);
-//     }
-
-// 	} while(strcmp(buf, "lb-end") != 0);
-
-
-// 	puts("\nLeaderboard:");
-// 	puts("---------------------------------------------");
-// 	printf("| %-5s| ", "Time");
-// 	printf("%-20s| ", "Name");
-// 	printf("%-6s| ", "Plays");
-// 	printf("%-5s|\n", "Wins");
-// 	puts("---------------------------------------------");
-
-// 	for(int i = 0; i <= index; i++){
-// 		//printf("%s\n", array[i]);
-// 		printf("| %-5d| ", i + 1);
-// 		printf("%-20s| ", strtok(array[i], "&"));
-// 		printf("%-6s| ", strtok(NULL, "&"));
-// 		printf("%-5s|\n", strtok(NULL, "&"));
-// 	}
-
-// 	for (int i = 0; i < index; i++){
-// 		free(array[i]);
-// 	}
-
-// 	puts("---------------------------------------------");
-// 	menu_option();
-// }

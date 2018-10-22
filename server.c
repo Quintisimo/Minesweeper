@@ -25,19 +25,20 @@
 // } *users;
 
 struct LeaderBoard {
-	// char *username;
+	char *username;
 	int games_won;
 	int games_played;
 } *leaderBoard = NULL;
 
 // // LEADER BOARD 
 // int auth_count = 0;
-// int user_count = 0;
+int user_count = 1;
 // int entry_count = 0;
-// char buf[MAXDATASIZE];
+char buf[MAXDATASIZE];
 // int add_leaderboard_entry(char *name);
 // int add_win_for(char *name);
 // int add_game_played(char *name);
+int leaderboard(int new_connection);
 
 typedef struct {
   char username[10];
@@ -75,7 +76,6 @@ void check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
 void send_tiles(int socket_id);
-void leaderboard(int new_connection);
 void check_win();
 
 int main(int argc, char const *argv[]) {
@@ -128,7 +128,11 @@ int main(int argc, char const *argv[]) {
       place_mines();
       adjacent_mines();
       send_tiles(new_connection);
-      leaderboard(new_connection);
+
+      if (strcmp(buf, "lb-start") == 0) {
+        if (leaderboard(new_connection) == -1) return -1;
+      }
+      // leaderboard(new_connection);
       // add_leaderboard_entry(username);
       // add_win_for(username);
       // add_game_played(username);
@@ -340,49 +344,6 @@ void send_tiles(int new_connection) {
   }
 }
 
-void leaderboard(int new_connection) {
-  int time_taken = 0;
-  // int timer = 0;
-
-  // IT'S NOT RECEIVING THE TIME TAKEN ???
-  while (1) {
-    if (recv(new_connection, &time_taken, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
-
-    printf("%d", time_taken);
-
-
-  //   timer = 2;
-
-  //   if (send(new_connection, &timer, sizeof(int), 0) == -1) {
-  //     perror("send");
-  //     exit(1);
-  //   }
-  }
-
-  // int played = 1;
-  // int won = 1;
-  // int timer = 1;
-  
-  // if (send(new_connection, &played, sizeof(int), 0) == -1) {
-  //   printf("sent");
-  //   perror("send");
-  //   exit(1);
-  // } 
-
-  // if (send(new_connection, &won, sizeof(int), 0) == -1) {
-  //   perror("send");
-  //   exit(1);
-  // } 
-
-  // if (send(new_connection, &timer, sizeof(int), 0) == -1) {
-  //   perror("send");
-  //   exit(1);
-  // } 
-}
-
 // int addWinFor(char *name){
 
 // 	for (int i = 0; i < user_count; i++){
@@ -430,21 +391,24 @@ void leaderboard(int new_connection) {
 // 	return 1; // return success
 // }
 
-// int leader_board(int new_connection){
+int leaderboard(int new_connection) {
+  leaderBoard[0].username = "Test";
+  leaderBoard[0].games_played = 1;
+  leaderBoard[0].games_won = 1;
 
-// 	for (int i = 0; i < user_count; i++){
-// 		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
+	for (int i = 0; i < user_count; i++){
+		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
 
-// 		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
-// 			perror("recv");
-//       exit(1);
-// 		}
-// 	}
+		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
+			perror("send");
+      exit(1);
+		}
+	}
 
-// 	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
-// 		perror("recv");
-//     exit(1);
-// 	}
+	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
+		perror("send");
+    exit(1);
+	}
 
-// 	return 1;
-// }
+	return 1;
+}
