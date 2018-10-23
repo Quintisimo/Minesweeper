@@ -75,7 +75,8 @@ void authentication();
 void check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
-void send_tiles(int socket_id);
+void send_tiles(int new_connection);
+void send_mines(int new_connection);
 void check_win();
 
 int main(int argc, char const *argv[]) {
@@ -93,7 +94,6 @@ int main(int argc, char const *argv[]) {
   server_address.sin_family = AF_INET;
   server_address.sin_port = htons(atoi(argv[1]));
   server_address.sin_addr.s_addr = INADDR_ANY;
-
   authentication();
 
   if ((socket_id = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -129,9 +129,6 @@ int main(int argc, char const *argv[]) {
       adjacent_mines();
       send_tiles(new_connection);
 
-      if (strcmp(buf, "lb-start") == 0) {
-        if (leaderboard(new_connection) == -1) return -1;
-      }
       // leaderboard(new_connection);
       // add_leaderboard_entry(username);
       // add_win_for(username);
@@ -259,6 +256,7 @@ void place_mines() {
     } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
     BOARD.tiles[x][y].is_mine = true;
+    printf("x: %d, y: %d\n", x, y);
     // for (int i = 0; i < NUM_TILES_X; i++) {
     //   for (int j = 0; j < NUM_TILES_Y; j++) {
     //     if (tile_contains_mine(x,y)) {
@@ -315,8 +313,15 @@ void send_tiles(int new_connection) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
+  char user_selection;
 
   while(1) {
+    if (recv(new_connection, &user_selection, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+    printf("user selection; %c", user_selection);
+
     if (recv(new_connection, &x, sizeof(int), 0) == -1) {
       perror("recv");
       exit(1);
@@ -327,19 +332,40 @@ void send_tiles(int new_connection) {
       exit(1);
     }
     
-    // printf("x:%d, y:%d\n", x, y);
-    // printf("%d", board.tiles[x][y].is_mine);
     if (BOARD.tiles[x][y].is_mine) {
       tile_value = -1;
     } else {
       tile_value = BOARD.tiles[x][y].adjacent_mines;
       BOARD.tiles[x][y].revealed = true;
+
     }
-    printf("%d", tile_value);
 
     if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
+    }
+
+    if (tile_value == -1 && user_selection == 'R') {
+      send_mines(new_connection);
+      break;
+    }
+  }
+}
+
+void send_mines(int new_connection) {
+  for(int i = 0; i < NUM_TILES_X; i++) {
+    for(int j = 0; j < NUM_TILES_Y; j++) {
+      if (BOARD.tiles[i][j].is_mine) {
+        if (send(new_connection, &i, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (send(new_connection, &j, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+      }
     }
   }
 }

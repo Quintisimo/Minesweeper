@@ -195,7 +195,7 @@ void play_game() {
   if (strcmp(&user_selection, "R") == 0) {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    send_location(tile_location, user_selection);
+    send_location(tile_location, 'R');
     play_game();
     if (tile_value == -1) {
       printf("Game Over! You hit a mine\n");
@@ -232,6 +232,11 @@ void send_location(char tile_location[2], char user_selection) {
     exit(1);
   }
 
+  if (send(SOCKET_ID, &user_selection, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
   if (send(SOCKET_ID, &x, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
@@ -247,15 +252,31 @@ void send_location(char tile_location[2], char user_selection) {
     exit(1);
   }
 
-  if (tile_value == -1) {
-    TILE_VALUES[x][y] = '*';
-  } else {
-    TILE_VALUES[x][y] = '0' + tile_value;
-  }
-  
   if (user_selection == 'P') {
     TILE_VALUES[x][y] = '+';
+  } else {
+    if (tile_value == -1) {
+      for(int i = 0; i < MINES; i++) {
+        int x = 0;
+        int y = 0;
+
+        if (recv(SOCKET_ID, &x, sizeof(int), 0) == -1) {
+          perror("recv");
+          exit(1);
+        }
+
+        if (recv(SOCKET_ID, &y, sizeof(int), 0) == -1) {
+          perror("recv");
+          exit(1);
+        }
+
+        TILE_VALUES[x][y] = '*';
+      }
+    } else {
+      TILE_VALUES[x][y] = '0' + tile_value;
+    }
   }
+
 }
 
 void leaderboard(){
