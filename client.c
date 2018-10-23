@@ -308,7 +308,6 @@ void send_location(char tile_location[2], char user_selection) {
 }
 
 void leaderboard() {
-
   char username[10];
   int game_time = 0;
   int games_won = 0;
@@ -334,42 +333,6 @@ void leaderboard() {
       exit(1);
   }
 
-  
-  // char *array[100];
-	// int index = -1;
-
-  // if (send(SOCKET_ID, "lb-start", sizeof("lb-start"), 0) == -1) {
-  //   perror("send");
-  //   exit(1);
-  // }  
-
-  // if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-  //     perror("recv");
-  //     exit(1);
-  // }
-
-	// do {
-	// 	index++;
-	// 	array[index] = malloc(sizeof buf);
-	// 	strcpy(array[index], buf);
-	//   if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-  //     perror("recv");
-  //     exit(1);
-  //   }
-
-	// } while(strcmp(buf, "lb-end") != 0);
-
-  // if (strcmp(buf, "lb-end") != 0) {
-  //   index++;
-	// 	array[index] = malloc(sizeof buf);
-	// 	strcpy(array[index], buf);
-	//   if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-  //     perror("recv");
-  //     exit(1);
-  //   }
-  // }
-
-
 	puts("\nLeaderboard:");
 	puts("------------------------------------------------");
 	printf("| %-20s| ", "Name");
@@ -381,14 +344,6 @@ void leaderboard() {
   printf("%-8d| ", game_time); // time
   printf("%-6d| ", games_won); // wins
   printf("%-5d|\n", games_played); // plays
-
-	// for(int i = 0; i <= index; i++){
-	// 	//printf("%s\n", array[i]);
-	// }
-
-	// for (int i = 0; i < index; i++){
-	// 	free(array[i]);
-	// }
 
   puts("------------------------------------------------");
 	menu_option();
