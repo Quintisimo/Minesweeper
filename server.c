@@ -12,12 +12,14 @@
 #include <ctype.h>
 #include <signal.h>
 #include <pthread.h>
+#include <time.h>
 
 #define MAXDATASIZE 100
 #define BACKLOG 10
 #define RANDOM_NUMBER_SEED 42
 #define NUM_TILES_X 9
 #define NUM_TILES_Y 9
+#define NUM_MINES 10
 
 // struct User {
 // 	char *username;
@@ -63,10 +65,11 @@ typedef struct {
 //   int sockfd;
 //   request_t* next;
 // };
-
-const int NUM_MINES = 10;
 Auth DATABASE[BACKLOG];
 GameState BOARD = {};
+int MINES = NUM_MINES;
+time_t START_TIME;
+time_t END_TIME;
 
 // struct request *requests = NULL;
 // struct request *last_request = NULL;
@@ -77,7 +80,6 @@ void place_mines();
 void adjacent_mines();
 void send_tiles(int new_connection);
 void send_mines(int new_connection);
-void check_win();
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -125,8 +127,10 @@ int main(int argc, char const *argv[]) {
 
     if (!fork()) {
       check_login(new_connection);
+      MINES = 1;
       place_mines();
       adjacent_mines();
+      START_TIME = time(NULL);
       send_tiles(new_connection);
 
       // leaderboard(new_connection);
@@ -316,11 +320,15 @@ void send_tiles(int new_connection) {
   char user_selection;
 
   while(1) {
+    if (send(new_connection, &MINES, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+
     if (recv(new_connection, &user_selection, sizeof(int), 0) == -1) {
       perror("recv");
       exit(1);
     }
-    printf("user selection; %c", user_selection);
 
     if (recv(new_connection, &x, sizeof(int), 0) == -1) {
       perror("recv");
@@ -337,7 +345,6 @@ void send_tiles(int new_connection) {
     } else {
       tile_value = BOARD.tiles[x][y].adjacent_mines;
       BOARD.tiles[x][y].revealed = true;
-
     }
 
     if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
@@ -345,9 +352,29 @@ void send_tiles(int new_connection) {
       exit(1);
     }
 
-    if (tile_value == -1 && user_selection == 'R') {
-      send_mines(new_connection);
-      break;
+    if (tile_value == -1) {
+      if (user_selection == 'R') {
+        send_mines(new_connection);
+        break;
+      } else if (user_selection == 'P') {
+        MINES -= 1;
+      }
+
+      if (MINES == 0) {
+        END_TIME = time(NULL);
+        int game_duration = difftime(END_TIME, START_TIME);
+
+        if (send(new_connection, &MINES, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (send(new_connection, &game_duration, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+        break;
+      }
     }
   }
 }

@@ -10,12 +10,12 @@
 #include <stdbool.h>
 
 #define MAXDATASIZE 100
-int MINES = 10;
+int MINES = 0;
 char USERNAME[10];
 char TILE_VALUES[9][9];
 int SOCKET_ID;
 char buf[MAXDATASIZE];
-bool GAME_OVER = false;
+bool REVEAL_MINE = false;
 
 bool login();
 void play_game();
@@ -155,6 +155,11 @@ void play_game() {
   char user_selection = '\0';
   char tile_location[2];
   
+  if (recv(SOCKET_ID, &MINES, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
   printf("\nRemaining mines: %i\n\n", MINES);
   printf("    ");
 
@@ -182,7 +187,7 @@ void play_game() {
     printf("\n");
   }
 
-  if (!GAME_OVER) {
+  if (!REVEAL_MINE && MINES != 0) {
     printf("\n\n");
     printf("Choose an option\n");
     printf("<R> Reveal tile\n");
@@ -192,8 +197,21 @@ void play_game() {
 
     scanf("%s", &user_selection);
   } else {
-    printf("\nGame Over! You hit a mine\n");
-    quit();
+    if (REVEAL_MINE) {
+      printf("\nGame Over! You hit a mine\n");
+      quit();
+    } else if (MINES == 0) {
+      int game_duration;
+
+      if (recv(SOCKET_ID, &game_duration, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      printf("\nCongratulations! You have located all the mines.\n");
+      printf("You won in %d seconds\n", game_duration);
+      quit();
+    }
   }
 
   if (user_selection == 'R') {
@@ -209,6 +227,8 @@ void play_game() {
     play_game();
 
   } else {
+    printf("Invaid Option\n");
+    exit(1);
   }
 }
 
@@ -253,7 +273,7 @@ void send_location(char tile_location[2], char user_selection) {
 
   if (user_selection == 'P') {
     TILE_VALUES[x][y] = '+';
-  } else {
+  } else if (user_selection == 'R') {
     if (tile_value == -1) {
       for(int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -277,7 +297,7 @@ void send_location(char tile_location[2], char user_selection) {
 
         TILE_VALUES[x][y] = '*';
       }
-      GAME_OVER = true;
+      REVEAL_MINE = true;
     } else {
       TILE_VALUES[x][y] = '0' + tile_value;
     }
