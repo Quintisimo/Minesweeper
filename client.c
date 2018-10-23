@@ -122,6 +122,11 @@ void quit() {
 void menu_option() {
   int selection = game_options();
 
+  if (send(SOCKET_ID, &selection, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
   if (selection == 1) {
     play_game();
   } else if (selection == 2) {
@@ -226,6 +231,8 @@ void play_game() {
     send_location(tile_location, 'P');
     play_game();
 
+  } else if (user_selection == 'Q') {
+    menu_option();
   } else {
     printf("Invaid Option\n");
     exit(1);
@@ -305,20 +312,46 @@ void send_location(char tile_location[2], char user_selection) {
 
 }
 
-void leaderboard(){
+void leaderboard() {
 
-	char *array[100];
-	int index = -1;
+  char username[10];
+  int game_time = 0;
+  int games_won = 0;
+  int games_played = 0;
 
-  if (send(SOCKET_ID, "lb-start", sizeof("lb-start"), 0) == -1) {
-    perror("send");
+  if (recv(SOCKET_ID, &username, 10, 0) == -1) {
+    perror("recv");
     exit(1);
-  }  
+  }
 
-  if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+	if (recv(SOCKET_ID, &game_time, sizeof(int), 0) == -1) {
       perror("recv");
       exit(1);
-    }
+  }
+
+  if (recv(SOCKET_ID, &games_won, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+  }
+
+  if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+  }
+
+  
+  // char *array[100];
+	// int index = -1;
+
+  // if (send(SOCKET_ID, "lb-start", sizeof("lb-start"), 0) == -1) {
+  //   perror("send");
+  //   exit(1);
+  // }  
+
+  // if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+  //     perror("recv");
+  //     exit(1);
+  // }
 
 	// do {
 	// 	index++;
@@ -331,36 +364,36 @@ void leaderboard(){
 
 	// } while(strcmp(buf, "lb-end") != 0);
 
-  if (strcmp(buf, "lb-end") != 0) {
-    index++;
-		array[index] = malloc(sizeof buf);
-		strcpy(array[index], buf);
-	  if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
-  }
+  // if (strcmp(buf, "lb-end") != 0) {
+  //   index++;
+	// 	array[index] = malloc(sizeof buf);
+	// 	strcpy(array[index], buf);
+	//   if (recv(SOCKET_ID, buf, sizeof(buf), 0) == -1) {
+  //     perror("recv");
+  //     exit(1);
+  //   }
+  // }
 
 
 	puts("\nLeaderboard:");
 	puts("------------------------------------------------");
 	printf("| %-20s| ", "Name");
 	printf("%-8s| ", "Time");
-	printf("%-6s| ", "Plays");
-	printf("%-5s|\n", "Wins");
+	printf("%-6s| ", "Wins");
+	printf("%-5s|\n", "Plays");
 	puts("------------------------------------------------");
+  printf("| %-20s| ", username); // name
+  printf("%-8d| ", game_time); // time
+  printf("%-6d| ", games_won); // wins
+  printf("%-5d|\n", games_played); // plays
 
-	for(int i = 0; i <= index; i++){
-		//printf("%s\n", array[i]);
-		printf("| %-20s| ", strtok(array[i], "&")); // name
-		printf("%-8s| ", strtok(NULL, "&")); // time
-		printf("%-6s| ", strtok(NULL, "&")); // plays
-		printf("%-5s|\n", strtok(NULL, "&")); // wins
-	}
+	// for(int i = 0; i <= index; i++){
+	// 	//printf("%s\n", array[i]);
+	// }
 
-	for (int i = 0; i < index; i++){
-		free(array[i]);
-	}
+	// for (int i = 0; i < index; i++){
+	// 	free(array[i]);
+	// }
 
   puts("------------------------------------------------");
 	menu_option();

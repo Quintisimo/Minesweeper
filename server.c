@@ -26,11 +26,12 @@
 // 	char *password;
 // } *users;
 
-struct LeaderBoard {
-	char *username;
+typedef struct {
+	char username[10];
+  int game_time;
 	int games_won;
 	int games_played;
-} *leaderBoard = NULL;
+} Leaderboard;
 
 // // LEADER BOARD 
 // int auth_count = 0;
@@ -40,7 +41,6 @@ char buf[MAXDATASIZE];
 // int add_leaderboard_entry(char *name);
 // int add_win_for(char *name);
 // int add_game_played(char *name);
-int leaderboard(int new_connection);
 
 typedef struct {
   char username[10];
@@ -66,8 +66,9 @@ typedef struct {
 //   request_t* next;
 // };
 Auth DATABASE[BACKLOG];
+Leaderboard LEADERBOARD[BACKLOG];
 GameState BOARD = {};
-int MINES = NUM_MINES;
+int MINES = 0;
 time_t START_TIME;
 time_t END_TIME;
 
@@ -78,8 +79,10 @@ void authentication();
 void check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
-void send_tiles(int new_connection);
+int send_tiles(int new_connection);
 void send_mines(int new_connection);
+void leaderboard(int new_connection);
+void receive_options(int new_connection);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -127,11 +130,11 @@ int main(int argc, char const *argv[]) {
 
     if (!fork()) {
       check_login(new_connection);
-      MINES = 1;
+      MINES = NUM_MINES;
       place_mines();
       adjacent_mines();
       START_TIME = time(NULL);
-      send_tiles(new_connection);
+      receive_options(new_connection);
 
       // leaderboard(new_connection);
       // add_leaderboard_entry(username);
@@ -207,6 +210,7 @@ void check_login(int new_connection) {
   for (int i = 0; i < BACKLOG; i++) {
     if (strcmp(username, DATABASE[i].username) == 0) {
       has_username = 0;
+      strcpy(LEADERBOARD[0].username, username);
     }
   }
 
@@ -230,22 +234,6 @@ void check_login(int new_connection) {
     perror("send");
     exit(1);
   }
-}
-
-bool tile_contains_mine(int x, int y) {
-  // bool contains_mine;
-
-  // for (int i = 0; i < NUM_TILES_X; i++) {
-  //   for (int j = 0; j < NUM_TILES_Y; j++) {
-  //     if ((x == i) && (y == j)) { 
-  //       contains_mine = true;
-  //     } else {
-  //       contains_mine = false;
-  //     }
-  //   }
-  // }
-  // return contains_mine;
-  return BOARD.tiles[x][y].is_mine;
 }
 
 void place_mines() {
@@ -313,7 +301,26 @@ void adjacent_mines() {
 //   }
 // }
 
-void send_tiles(int new_connection) {
+void receive_options(int new_connection) {
+  int selection = 0;
+
+  while(1) {
+    if (recv(new_connection, &selection, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+
+    if (selection == 1) {
+      if(send_tiles(new_connection) == -1) {
+        break;
+      }
+    } else if (selection == 2) {
+      leaderboard(new_connection);
+    }
+  }
+}
+
+int send_tiles(int new_connection) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
@@ -355,7 +362,8 @@ void send_tiles(int new_connection) {
     if (tile_value == -1) {
       if (user_selection == 'R') {
         send_mines(new_connection);
-        break;
+        LEADERBOARD[0].games_played += 1;
+        return -1;
       } else if (user_selection == 'P') {
         MINES -= 1;
       }
@@ -373,10 +381,14 @@ void send_tiles(int new_connection) {
           perror("send");
           exit(1);
         }
-        break;
+        LEADERBOARD[0].games_played += 1;
+        LEADERBOARD[0].games_won += 1;
+        LEADERBOARD[0].game_time = game_duration;
+        return -1;
       }
     }
   }
+  return 0;
 }
 
 void send_mines(int new_connection) {
@@ -444,24 +456,24 @@ void send_mines(int new_connection) {
 // 	return 1; // return success
 // }
 
-int leaderboard(int new_connection) {
-  leaderBoard[0].username = "Test";
-  leaderBoard[0].games_played = 1;
-  leaderBoard[0].games_won = 1;
-
-	for (int i = 0; i < user_count; i++){
-		sprintf(buf, "%s&%d&%d", leaderBoard[i].username, leaderBoard[i].games_played, leaderBoard[i].games_won);
-
-		if (send(new_connection, buf, sizeof buf, 0) == -1) { 
-			perror("send");
-      exit(1);
-		}
-	}
-
-	if (send(new_connection, "lb-end", sizeof("lb-end"), 0) == -1) { 
-		perror("send");
+void leaderboard(int new_connection) {
+	if (send(new_connection, &LEADERBOARD[0].username, 10, 0) == -1) {
+    perror("send");
     exit(1);
-	}
+  }
 
-	return 1;
+  if (send(new_connection, &LEADERBOARD[0].game_time, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
+  if (send(new_connection, &LEADERBOARD[0].games_won, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
+
+  if (send(new_connection, &LEADERBOARD[0].games_played, sizeof(int), 0) == -1) {
+    perror("send");
+    exit(1);
+  }
 }
