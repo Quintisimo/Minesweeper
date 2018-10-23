@@ -15,6 +15,7 @@ char USERNAME[10];
 char TILE_VALUES[9][9];
 int SOCKET_ID;
 char buf[MAXDATASIZE];
+bool GAME_OVER = false;
 
 bool login();
 void play_game();
@@ -151,10 +152,8 @@ int game_options() {
 }
 
 void play_game() {
-  // bool finished = false;
-  char user_selection;
+  char user_selection = '\0';
   char tile_location[2];
-  int tile_value = 0;
   
   printf("\nRemaining mines: %i\n\n", MINES);
   printf("    ");
@@ -183,33 +182,33 @@ void play_game() {
     printf("\n");
   }
 
-  printf("\n\n");
-  printf("Choose an option\n");
-  printf("<R> Reveal tile\n");
-  printf("<P> Place flag\n");
-  printf("<Q> Quit game\n");
-  printf("\nOptions (R,P,Q): ");
+  if (!GAME_OVER) {
+    printf("\n\n");
+    printf("Choose an option\n");
+    printf("<R> Reveal tile\n");
+    printf("<P> Place flag\n");
+    printf("<Q> Quit game\n");
+    printf("\nOptions (R,P,Q): ");
 
-  scanf("%s", &user_selection);
+    scanf("%s", &user_selection);
+  } else {
+    printf("\nGame Over! You hit a mine\n");
+    quit();
+  }
 
-  if (strcmp(&user_selection, "R") == 0) {
+  if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
     send_location(tile_location, 'R');
     play_game();
-    if (tile_value == -1) {
-      printf("Game Over! You hit a mine\n");
-      quit();
-    }
 
-  } else if (strcmp(&user_selection, "P") == 0) {
+  } else if (user_selection == 'P') {
     printf("Place flag: ");
     scanf("%s", tile_location);
     send_location(tile_location, 'P');
     play_game();
 
   } else {
-    quit();
   }
 }
 
@@ -256,6 +255,12 @@ void send_location(char tile_location[2], char user_selection) {
     TILE_VALUES[x][y] = '+';
   } else {
     if (tile_value == -1) {
+      for(int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+          TILE_VALUES[i][j] = 0;
+        }
+      }
+
       for(int i = 0; i < MINES; i++) {
         int x = 0;
         int y = 0;
@@ -272,6 +277,7 @@ void send_location(char tile_location[2], char user_selection) {
 
         TILE_VALUES[x][y] = '*';
       }
+      GAME_OVER = true;
     } else {
       TILE_VALUES[x][y] = '0' + tile_value;
     }
