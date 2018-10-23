@@ -11,10 +11,8 @@
 
 #define MAXDATASIZE 100
 int MINES = 0;
-char USERNAME[10];
 char TILE_VALUES[9][9];
 int SOCKET_ID;
-char buf[MAXDATASIZE];
 bool REVEAL_MINE = false;
 
 bool login();
@@ -27,9 +25,6 @@ void send_location(char tile_location[2], char user_selection);
 void leaderboard();
 
 int main(int argc, char const *argv[]) {
-  
-  // int bytes_size;
-  // char buffer[MAXDATASIZE];
   struct hostent *server;
   struct sockaddr_in server_address;
 
@@ -68,7 +63,7 @@ int main(int argc, char const *argv[]) {
 
 
 bool login() {
-  //char username[10];
+  char username[10];
   char password[10];
   int has_username;
   int has_password;
@@ -80,9 +75,9 @@ bool login() {
 
 
   printf("Username: ");
-  fgets(USERNAME, 10, stdin);
-  USERNAME[strcspn(USERNAME, "\n")] = '\0';
-  if (send(SOCKET_ID, &USERNAME, 10, 0) == -1) {
+  fgets(username, 10, stdin);
+  username[strcspn(username, "\n")] = '\0';
+  if (send(SOCKET_ID, &username, 10, 0) == -1) {
     perror("send");
     exit(1);
   }

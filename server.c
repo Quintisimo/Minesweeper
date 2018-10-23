@@ -21,26 +21,12 @@
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
 
-// struct User {
-// 	char *username;
-// 	char *password;
-// } *users;
-
 typedef struct {
 	char username[10];
   int game_time;
 	int games_won;
 	int games_played;
 } Leaderboard;
-
-// // LEADER BOARD 
-// int auth_count = 0;
-int user_count = 1;
-// int entry_count = 0;
-char buf[MAXDATASIZE];
-// int add_leaderboard_entry(char *name);
-// int add_win_for(char *name);
-// int add_game_played(char *name);
 
 typedef struct {
   char username[10];
@@ -136,10 +122,6 @@ int main(int argc, char const *argv[]) {
       START_TIME = time(NULL);
       receive_options(new_connection);
 
-      // leaderboard(new_connection);
-      // add_leaderboard_entry(username);
-      // add_win_for(username);
-      // add_game_played(username);
       close(new_connection);
       exit(0);
     }
@@ -188,8 +170,7 @@ void authentication() {
     }
 
     if (username != NULL && (strcmp(username, "Username") != 0) && password != NULL && (strcmp(password, "Password") != 0)) {
-      array_index++;      
-      //add_leaderboard_entry(users.username);
+      array_index++;
     }
   }
 
@@ -244,18 +225,9 @@ void place_mines() {
     do {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
-    // } while (tile_contains_mine(x,y));
     } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
     BOARD.tiles[x][y].is_mine = true;
-    printf("x: %d, y: %d\n", x, y);
-    // for (int i = 0; i < NUM_TILES_X; i++) {
-    //   for (int j = 0; j < NUM_TILES_Y; j++) {
-    //     if (tile_contains_mine(x,y)) {
-    //       printf("*");
-    //     }
-    //   }
-    // }
   }
 }
 
@@ -288,18 +260,6 @@ void adjacent_mines() {
     }
   }
 }
-
-// void minesweeperLoop(int new_connection) {
-//   char buf[MAXDATASIZE];
-
-//   // place_mines();
-
-//   // Send the placed mines to the client
-//   if (send(new_connection, buf, sizeof(buf), 0) == -1) {
-//     close(new_connection);
-//     perror("send");
-//   }
-// }
 
 void receive_options(int new_connection) {
   int selection = 0;
@@ -363,6 +323,7 @@ int send_tiles(int new_connection) {
       if (user_selection == 'R') {
         send_mines(new_connection);
         LEADERBOARD[0].games_played += 1;
+        printf("games played: %d\n", LEADERBOARD[0].games_played);
         return -1;
       } else if (user_selection == 'P') {
         MINES -= 1;
@@ -408,53 +369,6 @@ void send_mines(int new_connection) {
     }
   }
 }
-
-// int addWinFor(char *name){
-
-// 	for (int i = 0; i < user_count; i++){
-// 		if(strcmp(leaderBoard[i].username, name) == 0){
-// 			leaderBoard[i].games_won++;
-// 			leaderBoard[i].games_played++;
-
-// 			return 1;
-// 		}
-// 	}
-// 	return 0;
-// }
-
-// int add_game_played(char *name){
-
-// 	for (int i = 0; i < user_count; i++){
-// 		if(strcmp(leaderBoard[i].username, name) == 0){
-// 			leaderBoard[i].games_played++;
-
-// 			return 1;
-// 		}
-// 	}
-
-// 	return 0;
-// }
-
-// int add_leaderboard_entry(char *name){
-
-// 	// Check to see if the user already exists in the data store
-// 	for (int i = 0; i < user_count; i++){
-// 		if(strcmp(leaderBoard[i].username, name) == 0){
-// 		// they're the same
-
-// 		return -1;
-// 		}
-// 	}
-
-// 	user_count++;
-// 	leaderBoard = realloc(leaderBoard, user_count * sizeof(struct LeaderBoard));
-// 	leaderBoard[user_count - 1].username = malloc(strlen(name) + 1);
-// 	strcpy(leaderBoard[user_count - 1].username, name);
-// 	leaderBoard[user_count - 1].games_won = 0;
-// 	leaderBoard[user_count - 1].games_played = 0;
-
-// 	return 1; // return success
-// }
 
 void leaderboard(int new_connection) {
 	if (send(new_connection, &LEADERBOARD[0].username, 10, 0) == -1) {
