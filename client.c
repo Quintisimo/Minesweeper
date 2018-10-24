@@ -229,6 +229,7 @@ void play_game() {
     play_game();
 
   } else if (user_selection == 'Q') {
+    //! Not working 
     menu_option();
   } else {
     printf("Invaid Option\n");
@@ -311,42 +312,52 @@ void send_location(char tile_location[2], char user_selection) {
 
 void leaderboard() {
   char username[10];
+  int players = 0;
   int game_time = 0;
   int games_won = 0;
   int games_played = 0;
 
-  if (recv(SOCKET_ID, &username, 10, 0) == -1) {
-    perror("recv");
-    exit(1);
-  }
-
-	if (recv(SOCKET_ID, &game_time, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-  }
-
-  if (recv(SOCKET_ID, &games_won, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-  }
-
-  if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-  }
-
-	puts("\nLeaderboard:");
+  puts("\nLeaderboard:");
 	puts("------------------------------------------------");
 	printf("| %-20s| ", "Name");
 	printf("%-8s| ", "Time");
 	printf("%-6s| ", "Wins");
 	printf("%-5s|\n", "Plays");
 	puts("------------------------------------------------");
-  printf("| %-20s| ", username); // name
-  printf("%-8d| ", game_time); // time
-  printf("%-6d| ", games_won); // wins
-  printf("%-5d|\n", games_played); // plays
 
-  puts("------------------------------------------------");
+  if (recv(SOCKET_ID, &players, sizeof(int), 0) == -1) {
+    perror("recv");
+    exit(1);
+  }
+
+  //! Drawing even when there are no players
+  for (int i = 0; i < players; i++) {
+    if (recv(SOCKET_ID, &username, 10, 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
+
+    if (recv(SOCKET_ID, &game_time, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+    }
+
+    if (recv(SOCKET_ID, &games_won, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+    }
+
+    if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+    }
+
+    printf("| %-20s| ", username); // name
+    printf("%-8d| ", game_time); // time
+    printf("%-6d| ", games_won); // wins
+    printf("%-5d|\n", games_played); // plays
+
+    puts("------------------------------------------------");
+  }
 	menu_option();
 }
