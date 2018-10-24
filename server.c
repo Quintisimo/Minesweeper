@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <time.h>
 
+#define DEFAULT_PORT 12345
 #define MAXDATASIZE 100
 #define BACKLOG 10
 #define RANDOM_NUMBER_SEED 42
@@ -79,18 +80,19 @@ void start_game(int new_connection);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
+  int port = DEFAULT_PORT;
   struct sockaddr_in server_address;
   struct sockaddr_in client_address;
   socklen_t socket_length;
 
   srand(RANDOM_NUMBER_SEED);
 
-  if (argc != 2) {
-    fprintf(stderr, "Please enter a port number\n");
-    exit(1);
+  if (argc == 2) {
+    port = atoi(argv[1]);
   }
+
   server_address.sin_family = AF_INET;
-  server_address.sin_port = htons(atoi(argv[1]));
+  server_address.sin_port = htons(port);
   server_address.sin_addr.s_addr = INADDR_ANY;
   authentication();
 
@@ -109,10 +111,9 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  printf("Server is listening on %d\n", atoi(argv[1]));
+  printf("Server is listening on %d\n", port);
 
   while (1) {
-    // CONNECTED_CLIENTS += 1;
     pthread_t thread_id;
     pthread_attr_t thread_attributes;
     socket_length = sizeof(struct sockaddr);
@@ -126,6 +127,7 @@ int main(int argc, char const *argv[]) {
 
     pthread_attr_init(&thread_attributes);
     pthread_create(&thread_id, &thread_attributes, (void * (*) (void *)) start_game, (void * __restrict__)(uintptr_t) new_connection);
+    // CONNECTED_CLIENTS += 1;
     pthread_join(thread_id, NULL);
 
     // if (!fork()) {
