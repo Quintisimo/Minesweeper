@@ -58,11 +58,14 @@ typedef struct {
 // connections_t CLIENTS[BACKLOG];
 database_t DATABASE[BACKLOG];
 leaderboard_t LEADERBOARD[BACKLOG];
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
+pthread_t THREAD_IDS[BACKLOG];
+pthread_attr_t THREAD_ATTRIBUTES[BACKLOG];
 
 __thread time_t START_TIME;
 __thread time_t END_TIME;
-__thread int REMAINING_MINES = 1;
+__thread int REMAINING_MINES = NUM_MINES;
 __thread game_state_t BOARD = {};
 
 // struct request *requests = NULL;
@@ -114,8 +117,6 @@ int main(int argc, char const *argv[]) {
   printf("Server is listening on %d\n", port);
 
   while (1) {
-    pthread_t thread_id;
-    pthread_attr_t thread_attributes;
     socket_length = sizeof(struct sockaddr);
 
     if ((new_connection = accept(socket_id, (struct sockaddr *)&client_address, &socket_length)) == -1) {
@@ -125,10 +126,10 @@ int main(int argc, char const *argv[]) {
 
     printf("Server received a connection from %s\n", inet_ntoa(client_address.sin_addr));
 
-    pthread_attr_init(&thread_attributes);
-    pthread_create(&thread_id, &thread_attributes, (void * (*) (void *)) start_game, (void * __restrict__)(uintptr_t) new_connection);
+    pthread_attr_init(&THREAD_ATTRIBUTES[0]);
+    pthread_create(&THREAD_IDS[0], &THREAD_ATTRIBUTES[0], (void * (*) (void *)) start_game, (void * __restrict__)(uintptr_t) new_connection);
     // CONNECTED_CLIENTS += 1;
-    pthread_join(thread_id, NULL);
+    pthread_join(THREAD_IDS[0], NULL);
 
     // if (!fork()) {
     //   start_game(new_connection);
@@ -243,10 +244,10 @@ void place_mines() {
     int y;
 
     do {
-      pthread_mutex_lock(&mutex);
+      pthread_mutex_lock(&MUTEX);
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
-      pthread_mutex_unlock(&mutex);
+      pthread_mutex_unlock(&MUTEX);
     } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
     BOARD.tiles[x][y].is_mine = true;
@@ -344,9 +345,9 @@ int send_tiles(int new_connection) {
     if (tile_value == -1) {
       if (user_selection == 'R') {
         send_mines(new_connection);
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&MUTEX);
         LEADERBOARD[0].games_played += 1;
-        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&MUTEX);
         return -1;
       } else if (user_selection == 'P') {
         REMAINING_MINES -= 1;
@@ -366,11 +367,11 @@ int send_tiles(int new_connection) {
           exit(1);
         }
 
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&MUTEX);
         LEADERBOARD[0].games_played += 1;
         LEADERBOARD[0].games_won += 1;
         LEADERBOARD[0].game_time = game_duration;
-        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&MUTEX);
         return -1;
       }
     }

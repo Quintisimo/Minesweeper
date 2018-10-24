@@ -10,6 +10,8 @@
 #include <stdbool.h>
 
 #define MAXDATASIZE 100
+#define NUM_MINES 9
+
 int MINES = 0;
 char TILE_VALUES[9][9];
 int SOCKET_ID;
@@ -173,11 +175,11 @@ void play_game() {
   }
 
   printf("\n");
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < NUM_MINES; i++) {
     int num = i + 'A';
     printf("%c |", (char)num);
 
-    for (int j = 0; j < 9; j++) {
+    for (int j = 0; j < NUM_MINES; j++) {
       if (strcmp(&TILE_VALUES[j][i], "") == 0) {
         printf("  ");
       } else {
@@ -277,8 +279,8 @@ void send_location(char tile_location[2], char user_selection) {
     TILE_VALUES[x][y] = '+';
   } else if (user_selection == 'R') {
     if (tile_value == -1) {
-      for(int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+      for(int i = 0; i < NUM_MINES; i++) {
+        for (int j = 0; j < NUM_MINES; j++) {
           TILE_VALUES[i][j] = 0;
         }
       }
