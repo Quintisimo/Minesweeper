@@ -21,6 +21,7 @@
 #define NUM_TILES_Y 9
 #define NUM_MINES 10
 
+// leaderboard
 typedef struct {
 	char username[10];
   int game_time;
@@ -28,6 +29,7 @@ typedef struct {
 	int games_played;
 } leaderboard_t;
 
+// authorisation
 typedef struct {
   char username[10];
   char password[10];
@@ -45,28 +47,35 @@ typedef struct {
   tile_t tiles[NUM_TILES_X][NUM_TILES_Y];
 } game_state_t;
 
-// typedef struct request request_t;
-// struct request {
+// typedef struct {
 //   int number;
-//   int sockfd;
-//   request_t* next;
-// };
+//   int socket_id;
+//   int new_connection;
+// } connections_t;
+
+// int CONNECTED_CLIENTS = 0;
+// connections_t CLIENTS[BACKLOG];
 database_t DATABASE[BACKLOG];
 leaderboard_t LEADERBOARD[BACKLOG];
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+__thread time_t START_TIME;
+__thread time_t END_TIME;
+__thread int REMAINING_MINES = 1;
+__thread game_state_t BOARD = {};
 
 // struct request *requests = NULL;
 // struct request *last_request = NULL;
 
 void authentication();
 void check_login(int new_connection);
-void place_mines(game_state_t *board_pointer);
-void adjacent_mines(game_state_t *board_pointer);
-int send_tiles(int new_connection, game_state_t *board_pointer, int *number_mines, time_t start_time);
-void send_mines(int new_connection, game_state_t *board_pointer);
+void place_mines();
+void adjacent_mines();
+int send_tiles(int new_connection);
+void send_mines(int new_connection);
 void leaderboard(int new_connection);
-void receive_options(int new_connection, game_state_t *board_pointer, int *number_mines, time_t start_time);
-void *start_game(void *new_connection_pointer);
+void receive_options(int new_connection);
+void start_game(int new_connection);
 
 int main(int argc, char const *argv[]) {
   int socket_id, new_connection;
@@ -103,6 +112,7 @@ int main(int argc, char const *argv[]) {
   printf("Server is listening on %d\n", atoi(argv[1]));
 
   while (1) {
+    // CONNECTED_CLIENTS += 1;
     pthread_t thread_id;
     pthread_attr_t thread_attributes;
     socket_length = sizeof(struct sockaddr);
@@ -115,17 +125,11 @@ int main(int argc, char const *argv[]) {
     printf("Server received a connection from %s\n", inet_ntoa(client_address.sin_addr));
 
     pthread_attr_init(&thread_attributes);
-    pthread_create(&thread_id, &thread_attributes, start_game, &new_connection);
+    pthread_create(&thread_id, &thread_attributes, (void * (*) (void *)) start_game, (void * __restrict__)(uintptr_t) new_connection);
     pthread_join(thread_id, NULL);
 
     // if (!fork()) {
-    //   check_login(new_connection);
-    //   MINES = NUM_MINES;
-    //   place_mines();
-    //   adjacent_mines();
-    //   START_TIME = time(NULL);
-    //   receive_options(new_connection);
-
+    //   start_game(new_connection);
     //   close(new_connection);
     //   exit(0);
     // }
@@ -135,17 +139,12 @@ int main(int argc, char const *argv[]) {
   }
 }
 
-void *start_game(void *new_connection_pointer) {
-  int new_connection = *(int *) new_connection_pointer;
-  int number_mines = 1;
-  game_state_t board = {};
-  time_t start_time = time(NULL);
-  printf("%ld", start_time);
-
+void start_game(int new_connection) {
   check_login(new_connection);
-  place_mines(&board);
-  adjacent_mines(&board);
-  receive_options(new_connection, &board, &number_mines, start_time);
+  place_mines();
+  adjacent_mines();
+  time(&START_TIME);
+  receive_options(new_connection);
   close(new_connection);
   pthread_exit(NULL);
 }
@@ -236,7 +235,7 @@ void check_login(int new_connection) {
   }
 }
 
-void place_mines(game_state_t *board_pointer) {
+void place_mines() {
   for (int i = 0; i < NUM_MINES; i++) {
     int x;
     int y;
@@ -246,44 +245,43 @@ void place_mines(game_state_t *board_pointer) {
       x = rand() % NUM_TILES_X;
       y = rand() % NUM_TILES_Y;
       pthread_mutex_unlock(&mutex);
-    } while(board_pointer->tiles[x][y].is_mine);
+    } while(BOARD.tiles[x][y].is_mine);
     // place mine at (x, y)
-    board_pointer->tiles[x][y].is_mine = true;
-    printf("x: %d, y: %d\n", x, y);
+    BOARD.tiles[x][y].is_mine = true;
   }
 }
 
-void adjacent_mines(game_state_t *board_pointer) {
+void adjacent_mines() {
   for (int i = 0; i < NUM_TILES_X; i++) {
     for (int j = 0; j < NUM_TILES_Y; j++) {
-      if (board_pointer->tiles[i + 1][j].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i + 1][j].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
       
-      if (board_pointer->tiles[i][j + 1].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i][j + 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
       
-      if (board_pointer->tiles[i + 1][j + 1].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i + 1][j + 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board_pointer->tiles[i - 1][j].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i - 1][j].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board_pointer->tiles[i][j - 1].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i][j - 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
 
-      if (board_pointer->tiles[i - 1][j - 1].is_mine) {
-        board_pointer->tiles[i][j].adjacent_mines += 1;
+      if (BOARD.tiles[i - 1][j - 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
       }
     }
   }
 }
 
-void receive_options(int new_connection, game_state_t *board_pointer, int *number_mines, time_t start_time) {
+void receive_options(int new_connection) {
   int selection = 0;
 
   while(1) {
@@ -293,7 +291,7 @@ void receive_options(int new_connection, game_state_t *board_pointer, int *numbe
     }
 
     if (selection == 1) {
-      if(send_tiles(new_connection, board_pointer, number_mines, start_time) == -1) {
+      if(send_tiles(new_connection) == -1) {
         break;
       }
     } else if (selection == 2) {
@@ -302,14 +300,14 @@ void receive_options(int new_connection, game_state_t *board_pointer, int *numbe
   }
 }
 
-int send_tiles(int new_connection, game_state_t *board_pointer, int *number_mines, time_t start_time) {
+int send_tiles(int new_connection) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
   char user_selection;
 
   while(1) {
-    if (send(new_connection, number_mines, sizeof(int), 0) == -1) {
+    if (send(new_connection, &REMAINING_MINES, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
     }
@@ -329,11 +327,11 @@ int send_tiles(int new_connection, game_state_t *board_pointer, int *number_mine
       exit(1);
     }
     
-    if (board_pointer->tiles[x][y].is_mine) {
+    if (BOARD.tiles[x][y].is_mine) {
       tile_value = -1;
     } else {
-      tile_value = board_pointer->tiles[x][y].adjacent_mines;
-      board_pointer->tiles[x][y].revealed = true;
+      tile_value = BOARD.tiles[x][y].adjacent_mines;
+      BOARD.tiles[x][y].revealed = true;
     }
 
     if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
@@ -343,23 +341,20 @@ int send_tiles(int new_connection, game_state_t *board_pointer, int *number_mine
 
     if (tile_value == -1) {
       if (user_selection == 'R') {
-        send_mines(new_connection, board_pointer);
+        send_mines(new_connection);
         pthread_mutex_lock(&mutex);
         LEADERBOARD[0].games_played += 1;
         pthread_mutex_unlock(&mutex);
-
-        printf("games played: %d\n", LEADERBOARD[0].games_played);
         return -1;
       } else if (user_selection == 'P') {
-        number_mines -= 1;
+        REMAINING_MINES -= 1;
       }
 
-      if (number_mines == 0) {
-        time_t end_time = time(NULL);
-        //! variable not evaluating
-        int game_duration = difftime(end_time, start_time);
+      if (REMAINING_MINES == 0) {
+        time(&END_TIME);
+        int game_duration = difftime(END_TIME, START_TIME);
 
-        if (send(new_connection, number_mines, sizeof(int), 0) == -1) {
+        if (send(new_connection, &REMAINING_MINES, sizeof(int), 0) == -1) {
           perror("send");
           exit(1);
         }
@@ -381,10 +376,10 @@ int send_tiles(int new_connection, game_state_t *board_pointer, int *number_mine
   return 0;
 }
 
-void send_mines(int new_connection, game_state_t *board_pointer) {
+void send_mines(int new_connection) {
   for(int i = 0; i < NUM_TILES_X; i++) {
     for(int j = 0; j < NUM_TILES_Y; j++) {
-      if (board_pointer->tiles[i][j].is_mine) {
+      if (BOARD.tiles[i][j].is_mine) {
         if (send(new_connection, &i, sizeof(int), 0) == -1) {
           perror("send");
           exit(1);
