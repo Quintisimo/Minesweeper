@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +55,7 @@ struct request {
   struct request *next;
 };
 
-pthread_mutex_t REQUEST_MUTEX = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+pthread_mutex_t REQUEST_MUTEX = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 pthread_cond_t RECEIVED_REQUEST = PTHREAD_COND_INITIALIZER;
 int NUM_REQUESTS = 0;
 int NUM_CLIENTS = 0;
@@ -438,7 +439,7 @@ void leaderboard(int new_connection) {
 }
 
 void add_request(int request_number, int new_connection, pthread_mutex_t *p_mutex, pthread_cond_t *p_cond_var) {
-  int new_client;
+  //int new_client;
   struct request *new_request;
 
   new_request = (struct request *) malloc(sizeof(struct request));
@@ -450,7 +451,8 @@ void add_request(int request_number, int new_connection, pthread_mutex_t *p_mute
   new_request->connection = new_connection;
   new_request->next = NULL;
 
-  new_client = pthread_mutex_lock(p_mutex);
+  //new_client = pthread_mutex_lock(p_mutex);
+  pthread_mutex_lock(p_mutex);
 
   if (NUM_REQUESTS == 0) {
     REQUESTS = new_request;
@@ -461,15 +463,18 @@ void add_request(int request_number, int new_connection, pthread_mutex_t *p_mute
   }
   NUM_REQUESTS += 1;
 
-  new_client = pthread_mutex_unlock(p_mutex);
-  new_client = pthread_cond_signal(p_cond_var);
+  //new_client = pthread_mutex_unlock(p_mutex);
+  //new_client = pthread_cond_signal(p_cond_var);
+  pthread_mutex_unlock(p_mutex);
+  pthread_cond_signal(p_cond_var);
 }
 
 struct request *get_request(pthread_mutex_t *p_mutex) {
-  int new_client;
+  //int new_client;
   struct request *new_request;
 
-  new_client = pthread_mutex_lock(p_mutex);
+  //new_client = pthread_mutex_lock(p_mutex);
+  pthread_mutex_lock(p_mutex);
 
   if (NUM_REQUESTS > 0) {
     new_request = REQUESTS;
@@ -482,15 +487,17 @@ struct request *get_request(pthread_mutex_t *p_mutex) {
   } else {
     new_request = NULL;
   }
-  new_client = pthread_mutex_unlock(p_mutex);
+  //new_client = pthread_mutex_unlock(p_mutex);
+  pthread_mutex_unlock(p_mutex);
   return new_request;
 }
 
 void *requests_loop() {
-  int new_client;
+  //int new_client;
   struct request *new_request;
 
-  new_client = pthread_mutex_lock(&REQUEST_MUTEX);
+  //new_client = pthread_mutex_lock(&REQUEST_MUTEX);
+  pthread_mutex_lock(&REQUEST_MUTEX);
 
   while(1) {
     if (NUM_REQUESTS > 0) {
@@ -498,10 +505,12 @@ void *requests_loop() {
         pthread_mutex_unlock(&REQUEST_MUTEX);
         start_game(new_request->connection);
         free(new_request);
-        new_client = pthread_mutex_lock(&REQUEST_MUTEX);
+        //new_client = pthread_mutex_lock(&REQUEST_MUTEX);
+        pthread_mutex_lock(&REQUEST_MUTEX);
       }
     } else {
-      new_client = pthread_cond_wait(&RECEIVED_REQUEST, &REQUEST_MUTEX);
+      //new_client = pthread_cond_wait(&RECEIVED_REQUEST, &REQUEST_MUTEX);
+      pthread_cond_wait(&RECEIVED_REQUEST, &REQUEST_MUTEX);
     }
   }
 }
