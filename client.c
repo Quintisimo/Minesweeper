@@ -18,12 +18,12 @@ int SOCKET_ID;
 bool REVEAL_MINE = false;
 
 bool login();
-void play_game();
+void play_game(bool is_mine);
 int game_options();
 void menu_option();
 void quit();
 int letter_to_number(char letter);
-void send_location(char tile_location[2], char user_selection);
+bool send_location(char tile_location[2], char user_selection);
 void leaderboard();
 
 int main(int argc, char const *argv[]) {
@@ -125,7 +125,7 @@ void menu_option() {
   }
 
   if (selection == 1) {
-    play_game();
+    play_game(true);
   } else if (selection == 2) {
     leaderboard();
   } else {
@@ -153,10 +153,11 @@ int game_options() {
   return selection;
 }
 
-void play_game() {
+void play_game(bool is_mine) {
   char user_selection = '\0';
   char tile_location[2];
-  
+  bool mine = true;
+
   if (recv(SOCKET_ID, &MINES, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
@@ -191,6 +192,10 @@ void play_game() {
 
   if (!REVEAL_MINE && MINES != 0) {
     printf("\n\n");
+
+    if (!is_mine) {
+      printf("Flagged tile was not a mine\n");
+    }
     printf("Choose an option\n");
     printf("<R> Reveal tile\n");
     printf("<P> Place flag\n");
@@ -219,14 +224,14 @@ void play_game() {
   if (user_selection == 'R') {
     printf("Reveal tile: ");
     scanf("%s", tile_location);
-    send_location(tile_location, 'R');
-    play_game();
+    mine = send_location(tile_location, 'R');
+    play_game(mine);
 
   } else if (user_selection == 'P') {
     printf("Place flag: ");
     scanf("%s", tile_location);
-    send_location(tile_location, 'P');
-    play_game();
+    mine = send_location(tile_location, 'P');
+    play_game(mine);
 
   } else if (user_selection == 'Q') {
     //! Not working 
@@ -246,7 +251,7 @@ int letter_to_number(char letter) {
   return -1;
 }
 
-void send_location(char tile_location[2], char user_selection) {
+bool send_location(char tile_location[2], char user_selection) {
   int x = atoi(&tile_location[1]) - 1;
   int y = letter_to_number(tile_location[0]);
   int tile_value;
@@ -278,6 +283,12 @@ void send_location(char tile_location[2], char user_selection) {
 
   if (user_selection == 'P') {
     TILE_VALUES[x][y] = '+';
+
+    if (tile_value == -1) {
+      return true;
+    } else {
+      return false;
+    }
   } else if (user_selection == 'R') {
     if (tile_value == -1) {
       for(int i = 0; i < NUM_MINES; i++) {
@@ -307,7 +318,7 @@ void send_location(char tile_location[2], char user_selection) {
       TILE_VALUES[x][y] = '0' + tile_value;
     }
   }
-
+  return true;
 }
 
 void leaderboard() {
