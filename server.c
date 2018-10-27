@@ -66,6 +66,8 @@ int NUM_REQUESTS = 0;
 int NUM_CLIENTS = 0;
 
 database_t DATABASE[BACKLOG];
+
+char USERNAME[10];
 leaderboard_t *LEADERBOARD = NULL;
 
 pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
@@ -81,7 +83,7 @@ request_t *REQUESTS = NULL;
 request_t *LAST_REQUEST = NULL;
 
 void authentication();
-void check_login(int new_connection, leaderboard_t *player);
+bool check_login(int new_connection);
 
 void place_mines();
 void adjacent_mines();
@@ -162,18 +164,20 @@ int main(int argc, char const *argv[]) {
 }
 
 void start_game(int new_connection) {
-  leaderboard_t *next_player = malloc(sizeof(leaderboard_t));
-  next_player->game_time = 0;
-  next_player->games_played = 0;
-  next_player->games_won = 0;
-  next_player->next = LEADERBOARD;
-  LEADERBOARD = next_player;
+  if(check_login(new_connection)) {
+    leaderboard_t *next_player = malloc(sizeof(leaderboard_t));
+    strcpy(next_player->username, USERNAME);
+    next_player->game_time = 0;
+    next_player->games_played = 0;
+    next_player->games_won = 0;
+    next_player->next = LEADERBOARD;
+    LEADERBOARD = next_player;
 
-  check_login(new_connection, next_player);
-  place_mines();
-  adjacent_mines();
-  time(&START_TIME);
-  receive_options(new_connection, next_player);
+    place_mines();
+    adjacent_mines();
+    time(&START_TIME);
+    receive_options(new_connection, next_player);
+  }
   close(new_connection);
   pthread_exit(NULL);
 }
@@ -224,7 +228,7 @@ void authentication() {
   fclose(authentication);
 }
 
-void check_login(int new_connection, leaderboard_t *player) {
+bool check_login(int new_connection) {
   char username[10];
   char password[10];
   int has_username = -1;
@@ -238,7 +242,8 @@ void check_login(int new_connection, leaderboard_t *player) {
   for (int i = 0; i < BACKLOG; i++) {
     if (strcmp(username, DATABASE[i].username) == 0) {
       has_username = 0;
-      strcpy(player->username, username);
+      strcpy(USERNAME, DATABASE[i].username);
+      break;
     }
   }
 
@@ -255,6 +260,7 @@ void check_login(int new_connection, leaderboard_t *player) {
   for (int i = 0; i < BACKLOG; i++) {
     if (strcmp(password, DATABASE[i].password) == 0) {
       has_password = 0;
+      break;
     }
   }
 
@@ -262,6 +268,11 @@ void check_login(int new_connection, leaderboard_t *player) {
     perror("send");
     exit(1);
   }
+
+  if (has_username == 0 && has_password == 0) {
+    return true;
+  }
+  return false;
 }
 
 void place_mines() {
@@ -432,7 +443,9 @@ void leaderboard(int new_connection) {
   int num_players = 0;
 
   for (leaderboard_t *player = LEADERBOARD; player != NULL; player = player->next) {
-    num_players += 1;
+    if (player->games_won > 0) {
+      num_players += 1;
+    }
   }
 
   if (send(new_connection, &num_players, sizeof(int), 0) == -1) {
@@ -441,24 +454,26 @@ void leaderboard(int new_connection) {
   }
 
   for (leaderboard_t *player = LEADERBOARD; player != NULL; player = player->next) {
-    if (send(new_connection, &player->username, 10, 0) == -1) {
-      perror("send");
-      exit(1);
-    }
+    if (player->games_won > 0) {
+      if (send(new_connection, &player->username, 10, 0) == -1) {
+        perror("send");
+        exit(1);
+      }
 
-    if (send(new_connection, &player->game_time, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
+      if (send(new_connection, &player->game_time, sizeof(int), 0) == -1) {
+        perror("send");
+        exit(1);
+      }
 
-    if (send(new_connection, &player->games_won, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
+      if (send(new_connection, &player->games_won, sizeof(int), 0) == -1) {
+        perror("send");
+        exit(1);
+      }
 
-    if (send(new_connection, &player->games_played, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
+      if (send(new_connection, &player->games_played, sizeof(int), 0) == -1) {
+        perror("send");
+        exit(1);
+      }
     }
   }
 }

@@ -417,13 +417,60 @@ void leaderboard() {
     puts("There is no information currently stored in the leaderbaord. Try again later");
     puts("----------------------------------------------------------------------------");
   } else {
-      puts("\nLeaderboard:");
-      puts("------------------------------------------------");
-      printf("| %-20s| ", "Name");
-      printf("%-8s| ", "Time");
-      printf("%-6s| ", "Wins");
-      printf("%-5s|\n", "Plays");
-      puts("------------------------------------------------");
+    puts("\nLeaderboard:");
+    puts("------------------------------------------------");
+    printf("| %-20s| ", "Name");
+    printf("%-8s| ", "Time");
+    printf("%-6s| ", "Wins");
+    printf("%-5s|\n", "Plays");
+    puts("------------------------------------------------");
+
+    // Storing leadboard in desc according to game_time
+    for (int i = 0; i < players; i++) {
+      for (int j = 0; j < players; j++) {
+        if (game_time[i] < game_time[j]) {
+          char temp_string[10];
+          int temp_int;
+
+          strcpy(temp_string, username[i]);
+          strcpy(username[i], username[j]);
+          strcpy(username[j], temp_string);
+
+          temp_int = game_time[i];
+          game_time[i] = game_time[j];
+          game_time[j] = temp_int;
+
+          temp_int = games_won[i];
+          games_won[i] = games_won[j];
+          games_won[j] = temp_int;
+
+          temp_int = games_played[i];
+          games_played[i] = games_played[j];
+          games_played[j] = temp_int;
+        } else if (game_time[i] == game_time[j]) {
+          if (games_won[i] < games_won[j]) {
+            char temp_string[10];
+            int temp_int;
+
+            strcpy(temp_string, username[i]);
+            strcpy(username[i], username[j]);
+            strcpy(username[j], temp_string);
+
+            temp_int = game_time[i];
+            game_time[i] = game_time[j];
+            game_time[j] = temp_int;
+
+            temp_int = games_won[i];
+            games_won[i] = games_won[j];
+            games_won[j] = temp_int;
+
+            temp_int = games_played[i];
+            games_played[i] = games_played[j];
+            games_played[j] = temp_int;
+          }
+        }
+      }
+    }
 
     for (int i = 0; i < players; i++) {
       printf("| %-20s| ", username[i]); // name
