@@ -252,7 +252,7 @@ void play_game(bool is_mine) {
         x = strtol(&tile_location[1], NULL, 10) - 1;
         y = letter_to_number(tile_location[0]);
 
-        if (x > 8 || y == -1) {
+        if (x < 0 || x > 8 || y == -1) {
           fprintf(stderr, "Invalid Tile Location\n");
         } else {
           break;
@@ -270,10 +270,10 @@ void play_game(bool is_mine) {
       printf("Place flag: ");
 
       if (scanf("%s", tile_location) != -1) {
-        x = atoi(&tile_location[1]) - 1;
+        x = strtol(&tile_location[1], NULL, 10) - 1;
         y = letter_to_number(tile_location[0]);
 
-        if (x > 8 || y == -1) {
+        if (x < 0 || x > 8 || y == -1) {
           fprintf(stderr, "Invalid Tile Location\n");
         } else {
           break;
@@ -282,6 +282,7 @@ void play_game(bool is_mine) {
         printf("Error reading value. Please try again\n");
       }
     }
+    printf("x: %d\n", x);
     mine = send_location(x, y, 'P');
     play_game(mine);
 
@@ -336,7 +337,138 @@ bool send_location(int x, int y, char user_selection) {
       return false;
     }
   } else if (user_selection == 'R') {
-    if (tile_value == -1) {
+    if (tile_value == 0) {
+      int count_xp = 0;
+      int count_xn = 0;
+      int count_yp = 0;
+      int count_yn = 0;
+
+      int count_dlp = 0;
+      int count_dln = 0;
+      int count_drp = 0;
+      int count_drn = 0;
+
+      if (recv(SOCKET_ID, &count_xp, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_xp > 0) {
+        for (int i = 0; i <= count_xp; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x + i][y] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_xn, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_xn > 0) {
+        for (int i = 0; i <= count_xn; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x - i][y] = '0' + tile_value;
+        }
+      } 
+
+      if (recv(SOCKET_ID, &count_yp, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_yp > 0) {
+        for (int i = 0; i <= count_yp; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x][y + i] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_yn, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_yn > 0) {
+        for (int i = 0; i <= count_yn; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x][y - i] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_dlp, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_dlp > 0) {
+        for (int i = 0; i <= count_dlp; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x - 1][y + i] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_dln, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_dln > 0) {
+        for (int i = 0; i <= count_dln; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x - 1][y - i] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_drp, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+      printf("DRP: %d", count_drp);
+
+      if (count_drp > 0) {
+        for (int i = 0; i <= count_drp; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x + 1][y + i] = '0' + tile_value;
+        }
+      }
+
+      if (recv(SOCKET_ID, &count_drn, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+
+      if (count_drn > 0) {
+        for (int i = 0; i <= count_drn; i++) {
+          if (recv(SOCKET_ID, &tile_value, sizeof(int), 0) == -1) {
+            perror("recv");
+            exit(1);
+          }
+          TILE_VALUES[x + 1][y - i] = '0' + tile_value;
+        }
+      }
+    } else if (tile_value == -1) {
       for(int i = 0; i < MINES; i++) {
         int x = 0;
         int y = 0;
@@ -354,7 +486,7 @@ bool send_location(int x, int y, char user_selection) {
         TILE_VALUES[x][y] = '*';
       }
       REVEAL_MINE = true;
-    } else {
+    } else if (tile_value != -2) {
       TILE_VALUES[x][y] = '0' + tile_value;
     }
   }

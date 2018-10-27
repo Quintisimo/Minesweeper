@@ -88,6 +88,10 @@ bool check_login(int new_connection);
 void place_mines();
 void adjacent_mines();
 int send_tiles(int new_connection, leaderboard_t *player);
+int tiles_xp(int x, int y, int count);
+int tiles_xn(int x, int y, int count);
+int tiles_yp(int x, int y, int count);
+int tiles_yn(int x, int y, int count);
 void send_mines(int new_connection);
 
 void leaderboard(int new_connection);
@@ -151,15 +155,6 @@ int main(int argc, char const *argv[]) {
 
     add_request(NUM_CLIENTS, new_connection, &REQUEST_MUTEX, &RECEIVED_REQUEST);
     NUM_CLIENTS += 1;
-
-    // if (!fork()) {
-    //   start_game(new_connection);
-    //   close(new_connection);
-    //   exit(0);
-    // }
-    // close(new_connection);
-
-    // while (waitpid(-1, NULL, WNOHANG) > 0);
   }
 }
 
@@ -179,7 +174,6 @@ void start_game(int new_connection) {
     receive_options(new_connection, next_player);
   }
   close(new_connection);
-  pthread_exit(NULL);
 }
 
 void authentication() {
@@ -286,7 +280,6 @@ void place_mines() {
       y = rand() % NUM_TILES_Y;
       pthread_mutex_unlock(&MUTEX);
     } while(BOARD.tiles[x][y].is_mine);
-    // place mine at (x, y)
     BOARD.tiles[x][y].is_mine = true;
   }
 }
@@ -317,6 +310,14 @@ void adjacent_mines() {
       if (BOARD.tiles[i - 1][j - 1].is_mine) {
         BOARD.tiles[i][j].adjacent_mines += 1;
       }
+
+      if (BOARD.tiles[i + 1][j - 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
+      }
+
+      if (BOARD.tiles[i - 1][j + 1].is_mine) {
+        BOARD.tiles[i][j].adjacent_mines += 1;
+      }
     }
   }
 }
@@ -338,6 +339,54 @@ void receive_options(int new_connection, leaderboard_t *player) {
       leaderboard(new_connection);
     }
   }
+}
+
+int tiles_xp(int x, int y, int count) {
+  int xl = x + 1;
+
+  if (xl < 9 && y >= 0 && y < 9) {
+    count += 1;
+    if (BOARD.tiles[xl][y].adjacent_mines == 0) {
+      return tiles_xp(xl, y, count);
+    }
+  }
+  return count;
+}
+
+int tiles_xn(int x, int y, int count) {
+  int xl = x - 1;
+
+  if (xl > 0 && y >= 0 && y < 9) {
+    count += 1;
+    if (BOARD.tiles[xl][y].adjacent_mines == 0) {
+      return tiles_xn(xl, y, count);
+    }
+  }
+  return count;
+}
+
+int tiles_yn(int x, int y, int count) {
+  int yl = y - 1;
+
+  if (yl > 0 && x >= 0 && x < 9) {
+    count += 1;
+    if (BOARD.tiles[x][yl].adjacent_mines == 0) {
+      return tiles_yn(x, yl, count);
+    }
+  }
+  return count;
+}
+
+int tiles_yp(int x, int y, int count) {
+  int yl = y + 1;
+
+  if (yl < 9 && x >= 0 && x < 9) {
+    count += 1;
+    if (BOARD.tiles[x][yl].adjacent_mines == 0) {
+      return tiles_yp(x, yl, count);
+    }
+  }
+  return count;
 }
 
 int send_tiles(int new_connection, leaderboard_t *player) {
@@ -370,6 +419,8 @@ int send_tiles(int new_connection, leaderboard_t *player) {
       
       if (BOARD.tiles[x][y].is_mine) {
         tile_value = -1;
+      } else if (BOARD.tiles[x][y].revealed) {
+        tile_value = -2;
       } else {
         tile_value = BOARD.tiles[x][y].adjacent_mines;
         BOARD.tiles[x][y].revealed = true;
@@ -379,8 +430,138 @@ int send_tiles(int new_connection, leaderboard_t *player) {
         perror("send");
         exit(1);
       }
+        
+      if (tile_value == 0) {
+        int count_xp = tiles_xp(x, y, 0);
+        int count_xn = tiles_xn(x, y, 0);
+        int count_yp = tiles_yp(x, y, 0);
+        int count_yn = tiles_yn(x, y, 0);
 
-      if (tile_value == -1) {
+        int count_dlp = tiles_yp(x - 1, y, 0);
+        int count_dln = tiles_yn(x - 1, y, 0);
+        int count_drp = tiles_yp(x + 1, y, 0);
+        int count_drn = tiles_yn(x + 1, y, 0);
+
+        if (send(new_connection, &count_xp, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_xp > 0) {
+          for (int i = 0; i <= count_xp; i++) {
+            BOARD.tiles[x + i][y].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x + i][y].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_xn, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_xn > 0) {
+          for (int i = 0; i <= count_xn; i++) {
+            BOARD.tiles[x - i][y].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x - i][y].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_yp, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_yp > 0) {
+          for (int i = 0; i <= count_yp; i++) {
+            BOARD.tiles[x][y + i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x][y + i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_yn, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+        
+        if (count_yn > 0) {
+          for (int i = 0; i <= count_yn; i++) {
+            BOARD.tiles[x][y - i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x][y - i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_dlp, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_dlp > 0) {
+          for (int i = 0; i <= count_dlp; i++) {
+            BOARD.tiles[x - 1][y + i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x - 1][y + i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_dln, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_dln > 0) {
+          for (int i = 0; i <= count_dln; i++) {
+            BOARD.tiles[x - 1][y - i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x - 1][y - i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_drp, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_drp > 0) {
+          for (int i = 0; i <= count_drp; i++) {
+            BOARD.tiles[x + 1][y + i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x + 1][y + i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+
+        if (send(new_connection, &count_drn, sizeof(int), 0) == -1) {
+          perror("send");
+          exit(1);
+        }
+
+        if (count_drn > 0) {
+          for (int i = 0; i <= count_drn; i++) {
+            BOARD.tiles[x + 1][y - i].revealed = true;
+            if (send(new_connection, &BOARD.tiles[x + 1][y - i].adjacent_mines, sizeof(int), 0) == -1) {
+              perror("send");
+              exit(1);
+            }
+          }
+        }
+      } else if (tile_value == -1) {
         if (user_selection == 'R') {
           send_mines(new_connection);
           pthread_mutex_lock(&MUTEX);
