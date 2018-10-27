@@ -82,13 +82,16 @@ request_t *LAST_REQUEST = NULL;
 
 void authentication();
 void check_login(int new_connection, leaderboard_t *player);
+
 void place_mines();
 void adjacent_mines();
 int send_tiles(int new_connection, leaderboard_t *player);
 void send_mines(int new_connection);
+
 void leaderboard(int new_connection);
-void receive_options(int new_connection, leaderboard_t *player);
+
 void start_game(int new_connection);
+void receive_options(int new_connection, leaderboard_t *player);
 
 
 void add_request(int request_number, int new_connection, pthread_mutex_t *p_mutex, pthread_cond_t *p_cond_var);

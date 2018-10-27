@@ -57,7 +57,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if(login()) {
-    printf("Welcome to the Minesweeper gaming system\n");
+    printf("\nWelcome to the Minesweeper gaming system\n");
     menu_option();
   }
 
@@ -135,7 +135,7 @@ void menu_option() {
 }
 
 int game_options() {
-  int selection = 0;
+  char selection;
 
   printf("\nPlease enter a selection:\n");
   printf("\t<1> Play Minesweeper\n");
@@ -145,18 +145,18 @@ int game_options() {
   while(1) {
     printf("Please select one of the options (1-3): ");
     
-    if (scanf("%d", &selection) != -1) {
-      if (selection >= 1 && selection <= 3) {
+    if (scanf("%s", &selection) != -1) {
+      if (selection == '1' || selection == '2' || selection == '3') {
         break;
       } else {
-        printf("Invaid Option %i. Please try again\n", selection);
+        printf("Invaid Option %c. Please try again\n", selection);
       }
     } else {
       printf("Error reading value. Please try again\n");
     }
   }
 
-  return selection;
+  return strtol(&selection, NULL, 10);
 }
 
 void play_game(bool is_mine) {
@@ -249,7 +249,7 @@ void play_game(bool is_mine) {
       printf("Reveal tile: ");
 
       if (scanf("%s", tile_location) != -1) {
-        x = atoi(&tile_location[1]) - 1;
+        x = strtol(&tile_location[1], NULL, 10) - 1;
         y = letter_to_number(tile_location[0]);
 
         if (x > 8 || y == -1) {
@@ -373,53 +373,67 @@ void reset_game() {
 }
 
 void leaderboard() {
-  char username[10];
   int players = 0;
-  int game_time = 0;
-  int games_won = 0;
-  int games_played = 0;
-
-  puts("\nLeaderboard:");
-	puts("------------------------------------------------");
-	printf("| %-20s| ", "Name");
-	printf("%-8s| ", "Time");
-	printf("%-6s| ", "Wins");
-	printf("%-5s|\n", "Plays");
-	puts("------------------------------------------------");
+  bool no_wins = true;
 
   if (recv(SOCKET_ID, &players, sizeof(int), 0) == -1) {
     perror("recv");
     exit(1);
   }
 
-  //! Drawing even when there are no players
+  char username[10][players];
+  int game_time[players];
+  int games_won[players];
+  int games_played[players];
+
   for (int i = 0; i < players; i++) {
-    if (recv(SOCKET_ID, &username, 10, 0) == -1) {
+    if (recv(SOCKET_ID, &username[i], 10, 0) == -1) {
       perror("recv");
       exit(1);
     }
 
-    if (recv(SOCKET_ID, &game_time, sizeof(int), 0) == -1) {
+    if (recv(SOCKET_ID, &game_time[i], sizeof(int), 0) == -1) {
         perror("recv");
         exit(1);
     }
 
-    if (recv(SOCKET_ID, &games_won, sizeof(int), 0) == -1) {
+    if (recv(SOCKET_ID, &games_won[i], sizeof(int), 0) == -1) {
         perror("recv");
         exit(1);
     }
 
-    if (recv(SOCKET_ID, &games_played, sizeof(int), 0) == -1) {
+    if (games_won[i] != 0) {
+      no_wins = false;
+    }
+
+    if (recv(SOCKET_ID, &games_played[i], sizeof(int), 0) == -1) {
         perror("recv");
         exit(1);
     }
-
-    printf("| %-20s| ", username); // name
-    printf("%-8d| ", game_time); // time
-    printf("%-6d| ", games_won); // wins
-    printf("%-5d|\n", games_played); // plays
-
-    puts("------------------------------------------------");
   }
+
+  if (no_wins) {
+    puts("----------------------------------------------------------------------------");
+    puts("There is no information currently stored in the leaderbaord. Try again later");
+    puts("----------------------------------------------------------------------------");
+  } else {
+      puts("\nLeaderboard:");
+      puts("------------------------------------------------");
+      printf("| %-20s| ", "Name");
+      printf("%-8s| ", "Time");
+      printf("%-6s| ", "Wins");
+      printf("%-5s|\n", "Plays");
+      puts("------------------------------------------------");
+
+    for (int i = 0; i < players; i++) {
+      printf("| %-20s| ", username[i]); // name
+      printf("%-8d| ", game_time[i]); // time
+      printf("%-6d| ", games_won[i]); // wins
+      printf("%-5d|\n", games_played[i]); // plays
+
+      puts("------------------------------------------------");
+    }
+  }
+
 	menu_option();
 }
