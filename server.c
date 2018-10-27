@@ -307,7 +307,7 @@ void receive_options(int new_connection) {
 
     if (selection == 1) {
       if(send_tiles(new_connection) == -1) {
-        break;
+        receive_options(new_connection);
       }
     } else if (selection == 2) {
       leaderboard(new_connection);
@@ -332,61 +332,66 @@ int send_tiles(int new_connection) {
       exit(1);
     }
 
-    if (recv(new_connection, &x, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
+    if (user_selection != 'Q') {
+      if (recv(new_connection, &x, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
 
-    if (recv(new_connection, &y, sizeof(int), 0) == -1) {
-      perror("recv");
-      exit(1);
-    }
-    
-    if (BOARD.tiles[x][y].is_mine) {
-      tile_value = -1;
+      if (recv(new_connection, &y, sizeof(int), 0) == -1) {
+        perror("recv");
+        exit(1);
+      }
+      
+      if (BOARD.tiles[x][y].is_mine) {
+        tile_value = -1;
+      } else {
+        tile_value = BOARD.tiles[x][y].adjacent_mines;
+        BOARD.tiles[x][y].revealed = true;
+      }
+
+      if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
+        perror("send");
+        exit(1);
+      }
+
+      if (tile_value == -1) {
+        if (user_selection == 'R') {
+          send_mines(new_connection);
+          pthread_mutex_lock(&MUTEX);
+          LEADERBOARD[NUM_CLIENTS].games_played += 1;
+          pthread_mutex_unlock(&MUTEX);
+          printf("Games played: %d", LEADERBOARD[NUM_CLIENTS].games_played);
+          return -1;
+        } else if (user_selection == 'P') {
+          REMAINING_MINES -= 1;
+        }
+
+        if (REMAINING_MINES == 0) {
+          time(&END_TIME);
+          int game_duration = difftime(END_TIME, START_TIME);
+
+          if (send(new_connection, &REMAINING_MINES, sizeof(int), 0) == -1) {
+            perror("send");
+            exit(1);
+          }
+
+          if (send(new_connection, &game_duration, sizeof(int), 0) == -1) {
+            perror("send");
+            exit(1);
+          }
+
+          pthread_mutex_lock(&MUTEX);
+          LEADERBOARD[NUM_CLIENTS].games_played += 1;
+          LEADERBOARD[NUM_CLIENTS].games_won += 1;
+          LEADERBOARD[NUM_CLIENTS].game_time = game_duration;
+          pthread_mutex_unlock(&MUTEX);
+          return -1;
+        }
+      }
+
     } else {
-      tile_value = BOARD.tiles[x][y].adjacent_mines;
-      BOARD.tiles[x][y].revealed = true;
-    }
-
-    if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
-      perror("send");
-      exit(1);
-    }
-
-    if (tile_value == -1) {
-      if (user_selection == 'R') {
-        send_mines(new_connection);
-        pthread_mutex_lock(&MUTEX);
-        LEADERBOARD[NUM_CLIENTS].games_played += 1;
-        pthread_mutex_unlock(&MUTEX);
-        printf("Games played: %d", LEADERBOARD[NUM_CLIENTS].games_played);
-        return -1;
-      } else if (user_selection == 'P') {
-        REMAINING_MINES -= 1;
-      }
-
-      if (REMAINING_MINES == 0) {
-        time(&END_TIME);
-        int game_duration = difftime(END_TIME, START_TIME);
-
-        if (send(new_connection, &REMAINING_MINES, sizeof(int), 0) == -1) {
-          perror("send");
-          exit(1);
-        }
-
-        if (send(new_connection, &game_duration, sizeof(int), 0) == -1) {
-          perror("send");
-          exit(1);
-        }
-
-        pthread_mutex_lock(&MUTEX);
-        LEADERBOARD[NUM_CLIENTS].games_played += 1;
-        LEADERBOARD[NUM_CLIENTS].games_won += 1;
-        LEADERBOARD[NUM_CLIENTS].game_time = game_duration;
-        pthread_mutex_unlock(&MUTEX);
-        return -1;
-      }
+      receive_options(new_connection);
     }
   }
   return 0;

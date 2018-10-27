@@ -19,6 +19,7 @@ bool REVEAL_MINE = false;
 
 bool login();
 void play_game(bool is_mine);
+void reset_game();
 int game_options();
 void menu_option();
 void quit();
@@ -136,7 +137,7 @@ void menu_option() {
 int game_options() {
   int selection = 0;
 
-  printf("Please enter a selection:\n");
+  printf("\nPlease enter a selection:\n");
   printf("\t<1> Play Minesweeper\n");
   printf("\t<2> Show Leaderboard\n");
   printf("\t<3> Quit\n\n");
@@ -158,9 +159,11 @@ void play_game(bool is_mine) {
   char tile_location[2];
   bool mine = true;
 
-  if (recv(SOCKET_ID, &MINES, sizeof(int), 0) == -1) {
-    perror("recv");
-    exit(1);
+  if (!REVEAL_MINE) {
+    if (recv(SOCKET_ID, &MINES, sizeof(int), 0) == -1) {
+      perror("recv");
+      exit(1);
+    }
   }
 
   printf("\nRemaining mines: %i\n\n", MINES);
@@ -206,7 +209,8 @@ void play_game(bool is_mine) {
   } else {
     if (REVEAL_MINE) {
       printf("\nGame Over! You hit a mine\n");
-      quit();
+      reset_game();
+      menu_option();
     } else if (MINES == 0) {
       int game_duration;
 
@@ -217,7 +221,8 @@ void play_game(bool is_mine) {
 
       printf("\nCongratulations! You have located all the mines.\n");
       printf("You won in %d seconds\n", game_duration);
-      quit();
+      reset_game();
+      menu_option();
     }
   }
 
@@ -235,6 +240,11 @@ void play_game(bool is_mine) {
 
   } else if (user_selection == 'Q') {
     //! Not working 
+    if (send(SOCKET_ID, &user_selection, sizeof(int), 0) == -1) {
+      perror("send");
+      exit(1);
+    }
+    reset_game();
     menu_option();
   } else {
     printf("Invaid Option\n");
@@ -265,7 +275,7 @@ bool send_location(char tile_location[2], char user_selection) {
     perror("send");
     exit(1);
   }
-
+  
   if (send(SOCKET_ID, &x, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
@@ -291,12 +301,6 @@ bool send_location(char tile_location[2], char user_selection) {
     }
   } else if (user_selection == 'R') {
     if (tile_value == -1) {
-      for(int i = 0; i < NUM_MINES; i++) {
-        for (int j = 0; j < NUM_MINES; j++) {
-          TILE_VALUES[i][j] = 0;
-        }
-      }
-
       for(int i = 0; i < MINES; i++) {
         int x = 0;
         int y = 0;
@@ -319,6 +323,17 @@ bool send_location(char tile_location[2], char user_selection) {
     }
   }
   return true;
+}
+
+void reset_game() {
+  for (int i = 0; i < NUM_MINES; i++) {
+    for (int j = 0; j < NUM_MINES; j++) {
+      TILE_VALUES[i][j] = 0;
+    }
+  }
+
+  REVEAL_MINE = false;
+  MINES = 0;
 }
 
 void leaderboard() {
