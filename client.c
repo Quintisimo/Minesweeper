@@ -24,7 +24,7 @@ int game_options();
 void menu_option();
 void quit();
 int letter_to_number(char letter);
-bool send_location(char tile_location[2], char user_selection);
+bool send_location(int x, int y, char user_selection);
 void leaderboard();
 
 int main(int argc, char const *argv[]) {
@@ -143,11 +143,16 @@ int game_options() {
   printf("\t<3> Quit\n\n");
 
   while(1) {
-    if (selection >= 1 && selection <= 3) {
-      break;
+    printf("Please select one of the options (1-3): ");
+    
+    if (scanf("%d", &selection) != -1) {
+      if (selection >= 1 && selection <= 3) {
+        break;
+      } else {
+        printf("Invaid Option %i. Please try again\n", selection);
+      }
     } else {
-      printf("Please select one of the options (1-3): ");
-      scanf("%i", &selection);
+      printf("Error reading value. Please try again\n");
     }
   }
 
@@ -158,6 +163,8 @@ void play_game(bool is_mine) {
   char user_selection = '\0';
   char tile_location[2];
   bool mine = true;
+  int x = 0;
+  int y = 0;
 
   if (!REVEAL_MINE) {
     if (recv(SOCKET_ID, &MINES, sizeof(int), 0) == -1) {
@@ -197,15 +204,26 @@ void play_game(bool is_mine) {
     printf("\n\n");
 
     if (!is_mine) {
-      printf("Flagged tile was not a mine\n");
+      printf("Flagged tile was not a mine\n\n");
     }
     printf("Choose an option\n");
     printf("<R> Reveal tile\n");
     printf("<P> Place flag\n");
     printf("<Q> Quit game\n");
-    printf("\nOptions (R,P,Q): ");
 
-    scanf("%s", &user_selection);
+    while(1) {
+      printf("\nOptions (R,P,Q): ");
+
+      if (scanf("%s", &user_selection) != -1) {
+        if (!(user_selection == 'R' || user_selection == 'P' || user_selection == 'Q')) {
+          printf("Invaid Option %c. Please try again.\n", user_selection);
+        } else {
+          break;
+        }
+      } else {
+        printf("Error reading value. Please try again\n");
+      }
+    }
   } else {
     if (REVEAL_MINE) {
       printf("\nGame Over! You hit a mine\n");
@@ -227,28 +245,53 @@ void play_game(bool is_mine) {
   }
 
   if (user_selection == 'R') {
-    printf("Reveal tile: ");
-    scanf("%s", tile_location);
-    mine = send_location(tile_location, 'R');
+    while(1) {
+      printf("Reveal tile: ");
+
+      if (scanf("%s", tile_location) != -1) {
+        x = atoi(&tile_location[1]) - 1;
+        y = letter_to_number(tile_location[0]);
+
+        if (x > 8 || y == -1) {
+          fprintf(stderr, "Invalid Tile Location\n");
+        } else {
+          break;
+        }
+      } else {
+        printf("Error reading value. Please try again\n");
+      }
+    }
+
+    mine = send_location(x, y, 'R');
     play_game(mine);
 
   } else if (user_selection == 'P') {
-    printf("Place flag: ");
-    scanf("%s", tile_location);
-    mine = send_location(tile_location, 'P');
+    while(1) {
+      printf("Place flag: ");
+
+      if (scanf("%s", tile_location) != -1) {
+        x = atoi(&tile_location[1]) - 1;
+        y = letter_to_number(tile_location[0]);
+
+        if (x > 8 || y == -1) {
+          fprintf(stderr, "Invalid Tile Location\n");
+        } else {
+          break;
+        }
+      } else {
+        printf("Error reading value. Please try again\n");
+      }
+    }
+    mine = send_location(x, y, 'P');
     play_game(mine);
 
   } else if (user_selection == 'Q') {
-    //! Not working 
     if (send(SOCKET_ID, &user_selection, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
     }
     reset_game();
     menu_option();
-  } else {
-    printf("Invaid Option\n");
-    exit(1);
   }
 }
 
@@ -261,15 +304,8 @@ int letter_to_number(char letter) {
   return -1;
 }
 
-bool send_location(char tile_location[2], char user_selection) {
-  int x = atoi(&tile_location[1]) - 1;
-  int y = letter_to_number(tile_location[0]);
+bool send_location(int x, int y, char user_selection) {
   int tile_value;
-
-  if (x > 8 || y == -1) {
-    fprintf(stderr, "Outside grid");
-    exit(1);
-  }
 
   if (send(SOCKET_ID, &user_selection, sizeof(int), 0) == -1) {
     perror("send");
