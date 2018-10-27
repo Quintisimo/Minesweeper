@@ -28,11 +28,12 @@
 #define NUM_MINES 10
 
 // leaderboard
-typedef struct {
+typedef struct leaderboard {
 	char username[10];
   int game_time;
 	int games_won;
 	int games_played;
+  struct leaderboard *next;
 } leaderboard_t;
 
 // authorisation
@@ -53,11 +54,11 @@ typedef struct {
   tile_t tiles[NUM_TILES_X][NUM_TILES_Y];
 } game_state_t;
 
-struct request {
+typedef struct request {
   int number;
   int connection;
   struct request *next;
-};
+} request_t;
 
 pthread_mutex_t REQUEST_MUTEX = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 pthread_cond_t RECEIVED_REQUEST = PTHREAD_COND_INITIALIZER;
@@ -65,7 +66,7 @@ int NUM_REQUESTS = 0;
 int NUM_CLIENTS = 0;
 
 database_t DATABASE[BACKLOG];
-leaderboard_t LEADERBOARD[BACKLOG];
+leaderboard_t *LEADERBOARD = NULL;
 
 pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
 pthread_t THREAD_IDS[BACKLOG];
@@ -76,22 +77,22 @@ __thread int REMAINING_MINES = NUM_MINES;
 __thread time_t START_TIME;
 __thread time_t END_TIME;
 
-struct request *REQUESTS = NULL;
-struct request *LAST_REQUEST = NULL;
+request_t *REQUESTS = NULL;
+request_t *LAST_REQUEST = NULL;
 
 void authentication();
-void check_login(int new_connection);
+void check_login(int new_connection, leaderboard_t *player);
 void place_mines();
 void adjacent_mines();
-int send_tiles(int new_connection);
+int send_tiles(int new_connection, leaderboard_t *player);
 void send_mines(int new_connection);
 void leaderboard(int new_connection);
-void receive_options(int new_connection);
+void receive_options(int new_connection, leaderboard_t *player);
 void start_game(int new_connection);
 
 
 void add_request(int request_number, int new_connection, pthread_mutex_t *p_mutex, pthread_cond_t *p_cond_var);
-struct request *get_request(pthread_mutex_t *p_mutex);
+request_t *get_request(pthread_mutex_t *p_mutex);
 void *requests_loop();
 
 int main(int argc, char const *argv[]) {
@@ -158,11 +159,18 @@ int main(int argc, char const *argv[]) {
 }
 
 void start_game(int new_connection) {
-  check_login(new_connection);
+  leaderboard_t *next_player = malloc(sizeof(leaderboard_t));
+  next_player->game_time = 0;
+  next_player->games_played = 0;
+  next_player->games_won = 0;
+  next_player->next = LEADERBOARD;
+  LEADERBOARD = next_player;
+
+  check_login(new_connection, next_player);
   place_mines();
   adjacent_mines();
   time(&START_TIME);
-  receive_options(new_connection);
+  receive_options(new_connection, next_player);
   close(new_connection);
   pthread_exit(NULL);
 }
@@ -213,7 +221,7 @@ void authentication() {
   fclose(authentication);
 }
 
-void check_login(int new_connection) {
+void check_login(int new_connection, leaderboard_t *player) {
   char username[10];
   char password[10];
   int has_username = -1;
@@ -227,7 +235,7 @@ void check_login(int new_connection) {
   for (int i = 0; i < BACKLOG; i++) {
     if (strcmp(username, DATABASE[i].username) == 0) {
       has_username = 0;
-      strcpy(LEADERBOARD[NUM_CLIENTS].username, username);
+      strcpy(player->username, username);
     }
   }
 
@@ -299,7 +307,7 @@ void adjacent_mines() {
   }
 }
 
-void receive_options(int new_connection) {
+void receive_options(int new_connection, leaderboard_t *player) {
   int selection = 0;
 
   while(1) {
@@ -309,8 +317,8 @@ void receive_options(int new_connection) {
     }
 
     if (selection == 1) {
-      if(send_tiles(new_connection) == -1) {
-        receive_options(new_connection);
+      if(send_tiles(new_connection, player) == -1) {
+        receive_options(new_connection, player);
       }
     } else if (selection == 2) {
       leaderboard(new_connection);
@@ -318,7 +326,7 @@ void receive_options(int new_connection) {
   }
 }
 
-int send_tiles(int new_connection) {
+int send_tiles(int new_connection, leaderboard_t *player) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
@@ -362,9 +370,8 @@ int send_tiles(int new_connection) {
         if (user_selection == 'R') {
           send_mines(new_connection);
           pthread_mutex_lock(&MUTEX);
-          LEADERBOARD[NUM_CLIENTS].games_played += 1;
+          player->games_played += 1;
           pthread_mutex_unlock(&MUTEX);
-          printf("Games played: %d", LEADERBOARD[NUM_CLIENTS].games_played);
           return -1;
         } else if (user_selection == 'P') {
           REMAINING_MINES -= 1;
@@ -385,16 +392,16 @@ int send_tiles(int new_connection) {
           }
 
           pthread_mutex_lock(&MUTEX);
-          LEADERBOARD[NUM_CLIENTS].games_played += 1;
-          LEADERBOARD[NUM_CLIENTS].games_won += 1;
-          LEADERBOARD[NUM_CLIENTS].game_time = game_duration;
+          player->games_played += 1;
+          player->games_won += 1;
+          player->game_time = game_duration;
           pthread_mutex_unlock(&MUTEX);
           return -1;
         }
       }
 
     } else {
-      receive_options(new_connection);
+      receive_options(new_connection, player);
     }
   }
   return 0;
@@ -419,28 +426,34 @@ void send_mines(int new_connection) {
 }
 
 void leaderboard(int new_connection) {
-  if (send(new_connection, &NUM_CLIENTS, sizeof(int), 0) == -1) {
+  int num_players = 0;
+
+  for (leaderboard_t *player = LEADERBOARD; player != NULL; player = player->next) {
+    num_players += 1;
+  }
+
+  if (send(new_connection, &num_players, sizeof(int), 0) == -1) {
     perror("send");
     exit(1);
   }
 
-  for (int i = 0; i < NUM_CLIENTS; i++) {
-    if (send(new_connection, &LEADERBOARD[i].username, 10, 0) == -1) {
+  for (leaderboard_t *player = LEADERBOARD; player != NULL; player = player->next) {
+    if (send(new_connection, &player->username, 10, 0) == -1) {
       perror("send");
       exit(1);
     }
 
-    if (send(new_connection, &LEADERBOARD[i].game_time, sizeof(int), 0) == -1) {
+    if (send(new_connection, &player->game_time, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
     }
 
-    if (send(new_connection, &LEADERBOARD[i].games_won, sizeof(int), 0) == -1) {
+    if (send(new_connection, &player->games_won, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
     }
 
-    if (send(new_connection, &LEADERBOARD[i].games_played, sizeof(int), 0) == -1) {
+    if (send(new_connection, &player->games_played, sizeof(int), 0) == -1) {
       perror("send");
       exit(1);
     }
@@ -448,9 +461,9 @@ void leaderboard(int new_connection) {
 }
 
 void add_request(int request_number, int new_connection, pthread_mutex_t *p_mutex, pthread_cond_t *p_cond_var) {
-  struct request *new_request;
+  request_t *new_request;
 
-  new_request = (struct request *) malloc(sizeof(struct request));
+  new_request = (request_t *) malloc(sizeof(request_t));
   if (!new_request) {
     printf("Request: Out of memory\n");
     exit(1);
@@ -474,10 +487,9 @@ void add_request(int request_number, int new_connection, pthread_mutex_t *p_mute
   pthread_cond_signal(p_cond_var);
 }
 
-struct request *get_request(pthread_mutex_t *p_mutex) {
-  struct request *new_request;
+request_t *get_request(pthread_mutex_t *p_mutex) {
+  request_t *new_request;
 
-  //new_client = pthread_mutex_lock(p_mutex);
   pthread_mutex_lock(p_mutex);
 
   if (NUM_REQUESTS > 0) {
@@ -496,7 +508,7 @@ struct request *get_request(pthread_mutex_t *p_mutex) {
 }
 
 void *requests_loop() {
-  struct request *new_request;
+  request_t *new_request;
 
   pthread_mutex_lock(&REQUEST_MUTEX);
 
