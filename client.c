@@ -546,7 +546,7 @@ void leaderboard() {
 
   if (no_wins) {
     puts("----------------------------------------------------------------------------");
-    puts("There is no information currently stored in the leaderbaord. Try again later");
+    puts("There is no information currently stored in the leaderboard. Try again later");
     puts("----------------------------------------------------------------------------");
   } else {
     puts("\nLeaderboard:");
