@@ -73,8 +73,8 @@ leaderboard_t *LEADERBOARD = NULL;
 pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
 pthread_t THREAD_IDS[BACKLOG];
 
-__thread game_state_t BOARD = {};
-__thread int REMAINING_MINES = NUM_MINES;
+__thread game_state_t BOARD;
+__thread int REMAINING_MINES = 0;
 
 __thread time_t START_TIME;
 __thread time_t END_TIME;
@@ -87,7 +87,7 @@ bool check_login(int new_connection);
 
 void place_mines();
 void adjacent_mines();
-int send_tiles(int new_connection, leaderboard_t *player);
+void send_tiles(int new_connection, leaderboard_t *player);
 int tiles_xp(int x, int y, int count);
 int tiles_xn(int x, int y, int count);
 int tiles_yp(int x, int y, int count);
@@ -97,6 +97,7 @@ void send_mines(int new_connection);
 void leaderboard(int new_connection);
 
 void start_game(int new_connection);
+void reset_game();
 void receive_options(int new_connection, leaderboard_t *player);
 
 
@@ -168,12 +169,18 @@ void start_game(int new_connection) {
     next_player->next = LEADERBOARD;
     LEADERBOARD = next_player;
 
-    place_mines();
-    adjacent_mines();
-    time(&START_TIME);
     receive_options(new_connection, next_player);
   }
   close(new_connection);
+}
+
+void reset_game() {
+  BOARD = (game_state_t) {0};
+  REMAINING_MINES = NUM_MINES;
+
+  place_mines();
+  adjacent_mines();
+  time(&START_TIME);
 }
 
 void authentication() {
@@ -270,7 +277,7 @@ bool check_login(int new_connection) {
 }
 
 void place_mines() {
-  for (int i = 0; i < NUM_MINES; i++) {
+  for (int i = 0; i <= NUM_MINES; i++) {
     int x;
     int y;
 
@@ -332,9 +339,8 @@ void receive_options(int new_connection, leaderboard_t *player) {
     }
 
     if (selection == 1) {
-      if(send_tiles(new_connection, player) == -1) {
-        receive_options(new_connection, player);
-      }
+      reset_game();
+      send_tiles(new_connection, player);
     } else if (selection == 2) {
       leaderboard(new_connection);
     }
@@ -389,7 +395,7 @@ int tiles_yp(int x, int y, int count) {
   return count;
 }
 
-int send_tiles(int new_connection, leaderboard_t *player) {
+void send_tiles(int new_connection, leaderboard_t *player) {
   int x = 0;
   int y = 0;
   int tile_value = 0;
@@ -423,8 +429,8 @@ int send_tiles(int new_connection, leaderboard_t *player) {
         tile_value = -2;
       } else {
         tile_value = BOARD.tiles[x][y].adjacent_mines;
-        BOARD.tiles[x][y].revealed = true;
       }
+      BOARD.tiles[x][y].revealed = true;
 
       if (send(new_connection, &tile_value, sizeof(int), 0) == -1) {
         perror("send");
@@ -567,7 +573,7 @@ int send_tiles(int new_connection, leaderboard_t *player) {
           pthread_mutex_lock(&MUTEX);
           player->games_played += 1;
           pthread_mutex_unlock(&MUTEX);
-          return -1;
+          receive_options(new_connection, player);
         } else if (user_selection == 'P') {
           REMAINING_MINES -= 1;
         }
@@ -591,7 +597,7 @@ int send_tiles(int new_connection, leaderboard_t *player) {
           player->games_won += 1;
           player->game_time = game_duration;
           pthread_mutex_unlock(&MUTEX);
-          return -1;
+          receive_options(new_connection, player);
         }
       }
 
@@ -599,7 +605,6 @@ int send_tiles(int new_connection, leaderboard_t *player) {
       receive_options(new_connection, player);
     }
   }
-  return 0;
 }
 
 void send_mines(int new_connection) {

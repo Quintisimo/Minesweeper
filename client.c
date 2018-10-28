@@ -10,10 +10,11 @@
 #include <stdbool.h>
 
 #define MAXDATASIZE 100
-#define NUM_MINES 9
+#define NUM_MINES 10
+#define NUM_TILES 9
 
 int MINES = 0;
-char TILE_VALUES[9][9];
+char TILE_VALUES[NUM_TILES][NUM_TILES];
 int SOCKET_ID;
 bool REVEAL_MINE = false;
 
@@ -186,11 +187,11 @@ void play_game(bool is_mine) {
   }
 
   printf("\n");
-  for (int i = 0; i < NUM_MINES; i++) {
+  for (int i = 0; i < NUM_TILES; i++) {
     int num = i + 'A';
     printf("%c |", (char)num);
 
-    for (int j = 0; j < NUM_MINES; j++) {
+    for (int j = 0; j < NUM_TILES; j++) {
       if (strcmp(&TILE_VALUES[j][i], "") == 0) {
         printf("  ");
       } else {
@@ -282,7 +283,6 @@ void play_game(bool is_mine) {
         printf("Error reading value. Please try again\n");
       }
     }
-    printf("x: %d\n", x);
     mine = send_location(x, y, 'P');
     play_game(mine);
 
@@ -442,7 +442,6 @@ bool send_location(int x, int y, char user_selection) {
         perror("recv");
         exit(1);
       }
-      printf("DRP: %d", count_drp);
 
       if (count_drp > 0) {
         for (int i = 0; i <= count_drp; i++) {
@@ -469,7 +468,7 @@ bool send_location(int x, int y, char user_selection) {
         }
       }
     } else if (tile_value == -1) {
-      for(int i = 0; i < MINES; i++) {
+      for(int i = 0; i <= MINES; i++) {
         int x = 0;
         int y = 0;
 
@@ -494,8 +493,8 @@ bool send_location(int x, int y, char user_selection) {
 }
 
 void reset_game() {
-  for (int i = 0; i < NUM_MINES; i++) {
-    for (int j = 0; j < NUM_MINES; j++) {
+  for (int i = 0; i < NUM_TILES; i++) {
+    for (int j = 0; j < NUM_TILES; j++) {
       TILE_VALUES[i][j] = 0;
     }
   }
@@ -506,7 +505,6 @@ void reset_game() {
 
 void leaderboard() {
   int players = 0;
-  bool no_wins = true;
 
   if (recv(SOCKET_ID, &players, sizeof(int), 0) == -1) {
     perror("recv");
@@ -534,17 +532,13 @@ void leaderboard() {
         exit(1);
     }
 
-    if (games_won[i] != 0) {
-      no_wins = false;
-    }
-
     if (recv(SOCKET_ID, &games_played[i], sizeof(int), 0) == -1) {
         perror("recv");
         exit(1);
     }
   }
 
-  if (no_wins) {
+  if (players <= 0) {
     puts("----------------------------------------------------------------------------");
     puts("There is no information currently stored in the leaderboard. Try again later");
     puts("----------------------------------------------------------------------------");
