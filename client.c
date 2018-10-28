@@ -328,7 +328,9 @@ bool send_location(int x, int y, char user_selection) {
   }
 
   if (user_selection == 'P') {
-    TILE_VALUES[x][y] = '+';
+    if (TILE_VALUES[x][y] == '\0') {
+      TILE_VALUES[x][y] = '+';
+    }
 
     if (tile_value == -1) {
       return true;
@@ -360,9 +362,17 @@ bool send_location(int x, int y, char user_selection) {
           exit(1);
         }
 
-        TILE_VALUES[x][y] = '0' + tile_value;
+        if (TILE_VALUES[x][y] != '+') {
+          TILE_VALUES[x][y] = '0' + tile_value;
+        }
       }
     } else if (tile_value == -1) {
+      for (int i = 0; i < NUM_TILES; i++) {
+        for (int j = 0; j < NUM_TILES; j++) {
+          TILE_VALUES[i][j] = '\0';
+        }
+      }
+
       for(int i = 0; i <= MINES; i++) {
         int x = 0;
         int y = 0;
