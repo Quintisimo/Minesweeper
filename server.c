@@ -275,8 +275,8 @@ bool check_login(int new_connection) {
 
 void place_mines() {
   for (int i = 0; i < NUM_MINES; i++) {
-    int x;
-    int y;
+    int x = 0;
+    int y = 0;
 
     do {
       pthread_mutex_lock(&MUTEX);

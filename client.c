@@ -68,8 +68,8 @@ int main(int argc, char const *argv[]) {
 bool login() {
   char username[10];
   char password[10];
-  int has_username;
-  int has_password;
+  int has_username = -1;
+  int has_password = -1;
 
   printf("====================================================\n");
   printf("Welcome to the online Minesweeper gaming system\n");
@@ -230,7 +230,7 @@ void play_game(bool is_mine) {
       reset_game();
       menu_option();
     } else if (MINES == 0) {
-      int game_duration;
+      int game_duration = 0;
 
       if (recv(SOCKET_ID, &game_duration, sizeof(int), 0) == -1) {
         perror("recv");
@@ -305,7 +305,7 @@ int letter_to_number(char letter) {
 }
 
 bool send_location(int x, int y, char user_selection) {
-  int tile_value;
+  int tile_value = 0;
 
   if (send(SOCKET_ID, &user_selection, sizeof(int), 0) == -1) {
     perror("send");
@@ -461,7 +461,7 @@ void leaderboard() {
       for (int j = 0; j < players; j++) {
         if (game_time[i] < game_time[j]) {
           char temp_string[10];
-          int temp_int;
+          int temp_int = 0;
 
           strcpy(temp_string, username[i]);
           strcpy(username[i], username[j]);
@@ -481,7 +481,7 @@ void leaderboard() {
         } else if (game_time[i] == game_time[j]) {
           if (games_won[i] < games_won[j]) {
             char temp_string[10];
-            int temp_int;
+            int temp_int = 0;
 
             strcpy(temp_string, username[i]);
             strcpy(username[i], username[j]);
