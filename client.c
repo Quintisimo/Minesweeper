@@ -373,7 +373,7 @@ bool send_location(int x, int y, char user_selection) {
         }
       }
 
-      for(int i = 0; i <= MINES; i++) {
+      for(int i = 0; i < MINES; i++) {
         int x = 0;
         int y = 0;
 
